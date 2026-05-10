@@ -12,9 +12,7 @@ export default function GroupPage() {
   const [group, setGroup] = useState(null);
   const [events, setEvents] = useState([]);
 
-  const [title, setTitle] = useState("");
-  const [date, setDate] = useState("");
-
+  // Load group + events when token is ready
   useEffect(() => {
     if (token) {
       loadGroup();
@@ -22,82 +20,88 @@ export default function GroupPage() {
     }
   }, [token]);
 
+  // Fetch group info
   async function loadGroup() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("groups")
       .select("*")
       .eq("token", token)
       .single();
 
-    setGroup(data);
+    if (!error) {
+      setGroup(data);
+    } else {
+      console.log("Group error:", error);
+    }
   }
 
+  // Fetch events for this group
   async function loadEvents() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("events")
       .select("*")
       .eq("group_token", token);
 
-    setEvents(
-      (data || []).map((e) => ({
-        title: e.title,
-        date: e.date
-      }))
-    );
+    if (!error) {
+      setEvents(
+        (data || []).map((e) => ({
+          id: e.id,
+          title: e.title,
+          date: e.date
+        }))
+      );
+    } else {
+      console.log("Events error:", error);
+    }
   }
 
-  async function createEvent() {
-    if (!title || !date) return;
+  // Create event when clicking a day
+  async function handleDateClick(info) {
+    const title = prompt("Event title?");
+    if (!title) return;
 
-    await supabase.from("events").insert([
+    const { error } = await supabase.from("events").insert([
       {
         group_token: token,
         title,
-        date
+        date: info.dateStr
       }
     ]);
 
-    setTitle("");
-    setDate("");
-    loadEvents();
+    if (!error) {
+      loadEvents(); // refresh calendar
+    } else {
+      console.log("Insert error:", error);
+    }
   }
 
+  // Loading state
   if (!group) {
-    return <div style={{ padding: 40 }}>Loading group...</div>;
+    return (
+      <div style={{ padding: 40, fontFamily: "Arial" }}>
+        Loading group...
+      </div>
+    );
   }
 
   return (
     <div style={{ padding: 40, fontFamily: "Arial" }}>
-      <h1>{group.name}</h1>
+      {/* Header */}
+      <h1 style={{ marginBottom: 5 }}>{group.name}</h1>
+      <p style={{ color: "gray" }}>
+        Group token: <code>{group.token}</code>
+      </p>
 
-      <h2>Create Event</h2>
-
-      <input
-        placeholder="Title"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        style={{ padding: 8, marginRight: 10 }}
-      />
-
-      <input
-        type="date"
-        value={date}
-        onChange={(e) => setDate(e.target.value)}
-        style={{ padding: 8, marginRight: 10 }}
-      />
-
-      <button onClick={createEvent} style={{ padding: 8 }}>
-        Add
-      </button>
-
-      <h2 style={{ marginTop: 40 }}>Calendar</h2>
-
-      <FullCalendar
-        plugins={[dayGridPlugin]}
-        initialView="dayGridMonth"
-        events={events}
-        height="auto"
-      />
+      {/* Calendar */}
+      <div style={{ marginTop: 30 }}>
+        <FullCalendar
+          plugins={[dayGridPlugin]}
+          initialView="dayGridMonth"
+          events={events}
+          height="auto"
+          dateClick={handleDateClick}
+        />
+      </div>
     </div>
   );
 }
