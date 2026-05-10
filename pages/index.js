@@ -8,8 +8,21 @@ export default function Home() {
   const [groups, setGroups] = useState([]);
   const [name, setName] = useState("");
 
+  const [enteredPassword, setEnteredPassword] =
+    useState("");
+
+  const [authenticated, setAuthenticated] =
+    useState(false);
+
+  // CHECK SAVED LOGIN
   useEffect(() => {
-    loadGroups();
+    const saved =
+      localStorage.getItem("calendar_admin");
+
+    if (saved === "yes") {
+      setAuthenticated(true);
+      loadGroups();
+    }
   }, []);
 
   async function loadGroups() {
@@ -21,8 +34,33 @@ export default function Home() {
     setGroups(data || []);
   }
 
+  function login() {
+    if (
+      enteredPassword ===
+      process.env.NEXT_PUBLIC_ADMIN_PASSWORD
+    ) {
+      localStorage.setItem(
+        "calendar_admin",
+        "yes"
+      );
+
+      setAuthenticated(true);
+
+      loadGroups();
+    } else {
+      alert("Wrong password");
+    }
+  }
+
+  function logout() {
+    localStorage.removeItem("calendar_admin");
+    location.reload();
+  }
+
   function generateToken() {
-    return Math.random().toString(36).substring(2, 10);
+    return Math.random()
+      .toString(36)
+      .substring(2, 10);
   }
 
   async function createGroup() {
@@ -41,7 +79,11 @@ export default function Home() {
   }
 
   async function renameGroup(group) {
-    const newName = prompt("New group name:", group.name);
+    const newName = prompt(
+      "New group name:",
+      group.name
+    );
+
     if (!newName) return;
 
     await supabase
@@ -53,7 +95,10 @@ export default function Home() {
   }
 
   async function deleteGroup(group) {
-    const ok = confirm("Delete this group and all events?");
+    const ok = confirm(
+      "Delete group and all events?"
+    );
+
     if (!ok) return;
 
     await supabase
@@ -79,9 +124,49 @@ export default function Home() {
     );
   }
 
+  // LOGIN SCREEN
+  if (!authenticated) {
+    return (
+      <div style={styles.loginPage}>
+        <div style={styles.loginBox}>
+          <h1>Admin Login</h1>
+
+          <input
+            type="password"
+            placeholder="Password"
+            value={enteredPassword}
+            onChange={(e) =>
+              setEnteredPassword(e.target.value)
+            }
+            style={styles.input}
+          />
+
+          <button
+            onClick={login}
+            style={styles.createBtn}
+          >
+            Login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ADMIN DASHBOARD
   return (
     <div style={styles.page}>
-      <h1 style={styles.title}>Calendar Admin</h1>
+      <div style={styles.topBar}>
+        <h1 style={styles.title}>
+          Calendar Admin
+        </h1>
+
+        <button
+          onClick={logout}
+          style={styles.logoutBtn}
+        >
+          Logout
+        </button>
+      </div>
 
       {/* CREATE */}
       <div style={styles.box}>
@@ -89,12 +174,17 @@ export default function Home() {
 
         <input
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) =>
+            setName(e.target.value)
+          }
           placeholder="Group name"
           style={styles.input}
         />
 
-        <button onClick={createGroup} style={styles.createBtn}>
+        <button
+          onClick={createGroup}
+          style={styles.createBtn}
+        >
           Create
         </button>
       </div>
@@ -117,25 +207,40 @@ export default function Home() {
               <div style={styles.small}>
                 Admin:
                 <br />
-                /group/{g.token}?admin={g.admin_token}
+                /group/{g.token}?admin=
+                {g.admin_token}
               </div>
             </div>
 
             <div style={styles.actions}>
-              <button onClick={() => openMember(g)}>
+              <button
+                onClick={() =>
+                  openMember(g)
+                }
+              >
                 Open Member
               </button>
 
-              <button onClick={() => openAdmin(g)}>
+              <button
+                onClick={() =>
+                  openAdmin(g)
+                }
+              >
                 Open Admin
               </button>
 
-              <button onClick={() => renameGroup(g)}>
+              <button
+                onClick={() =>
+                  renameGroup(g)
+                }
+              >
                 Rename
               </button>
 
               <button
-                onClick={() => deleteGroup(g)}
+                onClick={() =>
+                  deleteGroup(g)
+                }
                 style={{ color: "red" }}
               >
                 Delete
@@ -149,21 +254,47 @@ export default function Home() {
 }
 
 const styles = {
+  loginPage: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    height: "100vh",
+    background: "#f5f6fa",
+    fontFamily: "Arial"
+  },
+
+  loginBox: {
+    background: "white",
+    padding: 30,
+    borderRadius: 12,
+    width: 320
+  },
+
   page: {
     padding: 40,
     fontFamily: "Arial",
     background: "#f5f6fa",
     minHeight: "100vh"
   },
-  title: {
+
+  topBar: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 20
   },
+
+  title: {
+    margin: 0
+  },
+
   box: {
     background: "white",
     padding: 15,
     borderRadius: 10,
     marginBottom: 20
   },
+
   input: {
     width: "100%",
     padding: 10,
@@ -173,6 +304,7 @@ const styles = {
     borderRadius: 6,
     boxSizing: "border-box"
   },
+
   createBtn: {
     padding: 10,
     background: "#2563eb",
@@ -181,17 +313,27 @@ const styles = {
     borderRadius: 6,
     cursor: "pointer"
   },
+
+  logoutBtn: {
+    padding: 10,
+    border: "none",
+    borderRadius: 6,
+    cursor: "pointer"
+  },
+
   row: {
     display: "flex",
     justifyContent: "space-between",
     padding: 10,
     borderBottom: "1px solid #eee"
   },
+
   actions: {
     display: "flex",
     gap: 10,
     alignItems: "center"
   },
+
   small: {
     fontSize: 12,
     color: "#666",
