@@ -3,43 +3,95 @@ import { supabase } from "../lib/supabaseClient";
 
 export default function Home() {
   const [groups, setGroups] = useState([]);
+  const [groupName, setGroupName] = useState("");
 
   useEffect(() => {
-    async function loadGroups() {
-      const { data, error } = await supabase
-        .from("groups")
-        .select("*");
-
-      if (error) {
-        console.log("Error:", error);
-      } else {
-        console.log("Groups:", data);
-        setGroups(data);
-      }
-    }
-
     loadGroups();
   }, []);
+
+  async function loadGroups() {
+    const { data, error } = await supabase
+      .from("groups")
+      .select("*");
+
+    if (!error) {
+      setGroups(data);
+    }
+  }
+
+  function generateToken() {
+    return Math.random().toString(36).substring(2, 12);
+  }
+
+  async function createGroup() {
+    if (!groupName) return;
+
+    const token = generateToken();
+
+    const { error } = await supabase
+      .from("groups")
+      .insert([
+        {
+          name: groupName,
+          token: token
+        }
+      ]);
+
+    if (!error) {
+      setGroupName("");
+      loadGroups();
+    } else {
+      console.log(error);
+    }
+  }
 
   return (
     <div style={{ padding: 40, fontFamily: "Arial" }}>
       <h1>OSS Calendar</h1>
 
-      <p>Supabase connection test</p>
+      <h2>Create Group</h2>
 
-      <h2>Groups</h2>
+      <input
+        type="text"
+        placeholder="Group name"
+        value={groupName}
+        onChange={(e) => setGroupName(e.target.value)}
+        style={{
+          padding: 10,
+          marginRight: 10
+        }}
+      />
 
-      {groups.length === 0 ? (
-        <p>No groups yet.</p>
-      ) : (
-        <ul>
-          {groups.map((group) => (
-            <li key={group.id}>
-              {group.name} ({group.token})
-            </li>
-          ))}
-        </ul>
-      )}
+      <button
+        onClick={createGroup}
+        style={{
+          padding: 10,
+          cursor: "pointer"
+        }}
+      >
+        Create
+      </button>
+
+      <h2 style={{ marginTop: 40 }}>Groups</h2>
+
+      {groups.map((group) => (
+        <div
+          key={group.id}
+          style={{
+            border: "1px solid #ccc",
+            padding: 10,
+            marginBottom: 10
+          }}
+        >
+          <strong>{group.name}</strong>
+
+          <p>
+            Link:
+            <br />
+            /group/{group.token}
+          </p>
+        </div>
+      ))}
     </div>
   );
 }
