@@ -2,6 +2,9 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 
+import FullCalendar from "@fullcalendar/react";
+import dayGridPlugin from "@fullcalendar/daygrid";
+
 export default function GroupPage() {
   const router = useRouter();
   const { token } = router.query;
@@ -33,37 +36,34 @@ export default function GroupPage() {
     const { data } = await supabase
       .from("events")
       .select("*")
-      .eq("group_token", token)
-      .order("date", { ascending: true });
+      .eq("group_token", token);
 
-    setEvents(data || []);
+    setEvents(
+      (data || []).map((e) => ({
+        title: e.title,
+        date: e.date
+      }))
+    );
   }
 
   async function createEvent() {
     if (!title || !date) return;
 
-    await supabase
-      .from("events")
-      .insert([
-        {
-          group_token: token,
-          title,
-          date
-        }
-      ]);
+    await supabase.from("events").insert([
+      {
+        group_token: token,
+        title,
+        date
+      }
+    ]);
 
     setTitle("");
     setDate("");
-
     loadEvents();
   }
 
   if (!group) {
-    return (
-      <div style={{ padding: 40 }}>
-        <h1>Loading group...</h1>
-      </div>
-    );
+    return <div style={{ padding: 40 }}>Loading group...</div>;
   }
 
   return (
@@ -73,49 +73,31 @@ export default function GroupPage() {
       <h2>Create Event</h2>
 
       <input
-        type="text"
-        placeholder="Event title"
+        placeholder="Title"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        style={{
-          padding: 10,
-          marginRight: 10
-        }}
+        style={{ padding: 8, marginRight: 10 }}
       />
 
       <input
         type="date"
         value={date}
         onChange={(e) => setDate(e.target.value)}
-        style={{
-          padding: 10,
-          marginRight: 10
-        }}
+        style={{ padding: 8, marginRight: 10 }}
       />
 
-      <button
-        onClick={createEvent}
-        style={{
-          padding: 10,
-          cursor: "pointer"
-        }}
-      >
-        Add Event
+      <button onClick={createEvent} style={{ padding: 8 }}>
+        Add
       </button>
 
-      <h2 style={{ marginTop: 40 }}>Events</h2>
+      <h2 style={{ marginTop: 40 }}>Calendar</h2>
 
-      {events.length === 0 ? (
-        <p>No events yet.</p>
-      ) : (
-        <ul>
-          {events.map((event) => (
-            <li key={event.id}>
-              {event.date} — {event.title}
-            </li>
-          ))}
-        </ul>
-      )}
+      <FullCalendar
+        plugins={[dayGridPlugin]}
+        initialView="dayGridMonth"
+        events={events}
+        height="auto"
+      />
     </div>
   );
 }
