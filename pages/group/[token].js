@@ -92,9 +92,11 @@ export default function GroupPage() {
       {showModal && (
         <div style={styles.overlay}>
           <div style={styles.modal}>
-            <h2>New Event</h2>
+            <h2 style={styles.heading}>New Event</h2>
 
-            <p>Date: {selectedDate}</p>
+            <p style={styles.dateText}>
+              {selectedDate}
+            </p>
 
             <input
               value={title}
@@ -123,7 +125,7 @@ export default function GroupPage() {
   );
 }
 
-/* STYLES — important fix here */
+/* STYLES */
 const styles = {
   page: {
     padding: 40,
@@ -146,7 +148,6 @@ const styles = {
     padding: 40
   },
 
-  /* FIX: strong overlay layering */
   overlay: {
     position: "fixed",
     top: 0,
@@ -165,14 +166,26 @@ const styles = {
     padding: 20,
     borderRadius: 10,
     width: 320,
-    zIndex: 10000
+    boxSizing: "border-box"
+  },
+
+  heading: {
+    marginBottom: 10
+  },
+
+  dateText: {
+    color: "#666",
+    marginBottom: 10
   },
 
   input: {
     width: "100%",
     padding: 10,
-    marginTop: 10,
-    marginBottom: 10
+    marginTop: 5,
+    marginBottom: 15,
+    border: "1px solid #ccc",
+    borderRadius: 6,
+    boxSizing: "border-box"
   },
 
   buttons: {
@@ -185,7 +198,8 @@ const styles = {
     padding: "8px 12px",
     background: "#ddd",
     border: "none",
-    cursor: "pointer"
+    cursor: "pointer",
+    borderRadius: 6
   },
 
   save: {
@@ -193,6 +207,7 @@ const styles = {
     background: "#2563eb",
     color: "white",
     border: "none",
-    cursor: "pointer"
+    cursor: "pointer",
+    borderRadius: 6
   }
 };
