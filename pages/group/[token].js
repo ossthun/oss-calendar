@@ -63,6 +63,7 @@ export default function GroupPage() {
         id: e.id,
         title: e.title,
         date: e.date,
+
         extendedProps: {
           is_holiday: e.is_holiday
         },
@@ -78,7 +79,7 @@ export default function GroupPage() {
     );
   }
 
-  // CREATE
+  // CREATE EVENT
   function handleDateClick(info) {
     setSelectedDate(info.dateStr);
 
@@ -91,7 +92,7 @@ export default function GroupPage() {
     setShowModal(true);
   }
 
-  // EDIT
+  // EDIT EVENT
   function handleEventClick(info) {
     const isHoliday =
       info.event.extendedProps.is_holiday;
@@ -184,13 +185,25 @@ export default function GroupPage() {
           initialView="dayGridMonth"
           events={events}
           height="auto"
+
           locale="de"
+
           firstDay={1}
+
+          buttonText={{
+            today: "Heute",
+            month: "Monat",
+            week: "Woche",
+            day: "Tag"
+          }}
+
           dateClick={handleDateClick}
+
           eventClick={handleEventClick}
         />
       </div>
 
+      {/* MODAL */}
       {showModal && (
         <div style={styles.overlay}>
           <div style={styles.modal}>
@@ -209,6 +222,7 @@ export default function GroupPage() {
               }
               placeholder="Titel"
               style={styles.input}
+              autoFocus
             />
 
             <div style={styles.modalButtons}>
