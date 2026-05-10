@@ -1,97 +1,179 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { useRouter } from "next/router";
 
 export default function Home() {
+  const router = useRouter();
+
   const [groups, setGroups] = useState([]);
-  const [groupName, setGroupName] = useState("");
+  const [name, setName] = useState("");
 
   useEffect(() => {
     loadGroups();
   }, []);
 
   async function loadGroups() {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("groups")
-      .select("*");
+      .select("*")
+      .order("id", { ascending: false });
 
-    if (!error) {
-      setGroups(data);
-    }
+    setGroups(data || []);
   }
 
   function generateToken() {
-    return Math.random().toString(36).substring(2, 12);
+    return Math.random().toString(36).substring(2, 10);
   }
 
   async function createGroup() {
-    if (!groupName) return;
+    if (!name.trim()) return;
 
-    const token = generateToken();
+    await supabase.from("groups").insert([
+      {
+        name,
+        token: generateToken()
+      }
+    ]);
 
-    const { error } = await supabase
+    setName("");
+    loadGroups();
+  }
+
+  async function renameGroup(group) {
+    const newName = prompt("New group name:", group.name);
+    if (!newName) return;
+
+    await supabase
       .from("groups")
-      .insert([
-        {
-          name: groupName,
-          token: token
-        }
-      ]);
+      .update({ name: newName })
+      .eq("id", group.id);
 
-    if (!error) {
-      setGroupName("");
-      loadGroups();
-    } else {
-      console.log(error);
-    }
+    loadGroups();
+  }
+
+  async function deleteGroup(group) {
+    const ok = confirm("Delete group and all events?");
+    if (!ok) return;
+
+    await supabase
+      .from("events")
+      .delete()
+      .eq("group_token", group.token);
+
+    await supabase
+      .from("groups")
+      .delete()
+      .eq("id", group.id);
+
+    loadGroups();
+  }
+
+  function openGroup(group) {
+    router.push(`/group/${group.token}`);
   }
 
   return (
-    <div style={{ padding: 40, fontFamily: "Arial" }}>
-      <h1>OSS Calendar</h1>
+    <div style={styles.page}>
+      <h1 style={styles.title}>Calendar Admin</h1>
 
-      <h2>Create Group</h2>
+      {/* CREATE GROUP */}
+      <div style={styles.box}>
+        <h3>Create group</h3>
 
-      <input
-        type="text"
-        placeholder="Group name"
-        value={groupName}
-        onChange={(e) => setGroupName(e.target.value)}
-        style={{
-          padding: 10,
-          marginRight: 10
-        }}
-      />
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Group name"
+          style={styles.input}
+        />
 
-      <button
-        onClick={createGroup}
-        style={{
-          padding: 10,
-          cursor: "pointer"
-        }}
-      >
-        Create
-      </button>
+        <button onClick={createGroup} style={styles.createBtn}>
+          Create
+        </button>
+      </div>
 
-      <h2 style={{ marginTop: 40 }}>Groups</h2>
+      {/* GROUP LIST */}
+      <div style={styles.box}>
+        <h3>Groups</h3>
 
-      {groups.map((group) => (
-        <div
-          key={group.id}
-          style={{
-            border: "1px solid #ccc",
-            padding: 10,
-            marginBottom: 10
-          }}
-        >
-          <strong>{group.name}</strong>
+        {groups.map((g) => (
+          <div key={g.id} style={styles.row}>
+            <div>
+              <b>{g.name}</b>
+              <div style={styles.small}>
+                /group/{g.token}
+              </div>
+            </div>
 
-          <p>
-            Link:
-            <br />
-            /group/{group.token}
-          </p>
-        </div>
-      ))}
+            <div style={styles.actions}>
+              <button onClick={() => openGroup(g)}>
+                Open
+              </button>
+
+              <button onClick={() => renameGroup(g)}>
+                Rename
+              </button>
+
+              <button
+                onClick={() => deleteGroup(g)}
+                style={{ color: "red" }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
+
+/* STYLES */
+const styles = {
+  page: {
+    padding: 40,
+    fontFamily: "Arial",
+    background: "#f5f6fa",
+    minHeight: "100vh"
+  },
+  title: {
+    marginBottom: 20
+  },
+  box: {
+    background: "white",
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 20
+  },
+  input: {
+    width: "100%",
+    padding: 10,
+    marginTop: 10,
+    marginBottom: 10,
+    border: "1px solid #ccc",
+    borderRadius: 6,
+    boxSizing: "border-box"
+  },
+  createBtn: {
+    padding: 10,
+    background: "#2563eb",
+    color: "white",
+    border: "none",
+    borderRadius: 6,
+    cursor: "pointer"
+  },
+  row: {
+    display: "flex",
+    justifyContent: "space-between",
+    padding: 10,
+    borderBottom: "1px solid #eee"
+  },
+  actions: {
+    display: "flex",
+    gap: 10
+  },
+  small: {
+    fontSize: 12,
+    color: "#666"
+  }
+};
