@@ -14,6 +14,7 @@ function easterSunday(year) {
   const f = Math.floor;
   const G = year % 19;
   const C = f(year / 100);
+
   const H =
     (C -
       f(C / 4) -
@@ -26,7 +27,8 @@ function easterSunday(year) {
     H -
     f(H / 28) *
       (1 -
-        f(29 / (H + 1)) * f((21 - G) / 11));
+        f(29 / (H + 1)) *
+          f((21 - G) / 11));
 
   const J =
     (year +
@@ -107,11 +109,14 @@ function getSwissHolidays(year, token) {
       date: `${year}-12-26`
     }
   ].map((h, i) => ({
-    id: `h-${i}`,
-    group_token: token,
+    id: `holiday-${year}-${i}`,
     title: h.title,
     date: h.date,
-    is_holiday: true
+    extendedProps: {
+      is_holiday: true
+    },
+    backgroundColor: "#dc2626",
+    borderColor: "#dc2626"
   }));
 }
 
@@ -121,11 +126,15 @@ function getSwissHolidays(year, token) {
 
 export default function GroupPage() {
   const router = useRouter();
+
   const { token, admin } = router.query;
 
   const [group, setGroup] = useState(null);
+
   const [events, setEvents] = useState([]);
-  const [isAdmin, setIsAdmin] = useState(false);
+
+  const [isAdmin, setIsAdmin] =
+    useState(false);
 
   const [showModal, setShowModal] =
     useState(false);
@@ -137,6 +146,36 @@ export default function GroupPage() {
 
   const [editingEvent, setEditingEvent] =
     useState(null);
+
+  const [isMobile, setIsMobile] =
+    useState(false);
+
+  /* =========================
+     MOBILE DETECTION
+     ========================= */
+
+  useEffect(() => {
+    function handleResize() {
+      setIsMobile(window.innerWidth < 700);
+    }
+
+    handleResize();
+
+    window.addEventListener(
+      "resize",
+      handleResize
+    );
+
+    return () =>
+      window.removeEventListener(
+        "resize",
+        handleResize
+      );
+  }, []);
+
+  /* =========================
+     LOAD GROUP + EVENTS
+     ========================= */
 
   useEffect(() => {
     if (token) {
@@ -154,7 +193,9 @@ export default function GroupPage() {
 
     setGroup(data);
 
-    setIsAdmin(data?.admin_token === admin);
+    setIsAdmin(
+      data?.admin_token === admin
+    );
   }
 
   async function loadEvents() {
@@ -163,71 +204,106 @@ export default function GroupPage() {
       .select("*")
       .eq("group_token", token);
 
-   const year = new Date().getFullYear();
+    const year = new Date().getFullYear();
 
-const holidays = [
-  ...getSwissHolidays(year - 1, token),
-  ...getSwissHolidays(year, token),
-  ...getSwissHolidays(year + 1, token)
-];
+    const holidays = [
+      ...getSwissHolidays(
+        year - 1,
+        token
+      ),
 
-    const dbEvents = (data || []).map((e) => ({
-      id: e.id,
-      title: e.title,
-      date: e.date,
-      extendedProps: {
-        is_holiday: e.is_holiday
-      },
-      backgroundColor: e.is_holiday
-        ? "#dc2626"
-        : "#2563eb",
-      borderColor: e.is_holiday
-        ? "#dc2626"
-        : "#2563eb"
-    }));
+      ...getSwissHolidays(
+        year,
+        token
+      ),
 
-    const holidayEvents = holidays.map((h) => ({
-      ...h,
-      backgroundColor: "#dc2626",
-      borderColor: "#dc2626",
-      extendedProps: {
-        is_holiday: true
-      }
-    }));
+      ...getSwissHolidays(
+        year + 1,
+        token
+      )
+    ];
 
-    setEvents([...dbEvents, ...holidayEvents]);
+    const dbEvents = (data || []).map(
+      (e) => ({
+        id: e.id,
+        title: e.title,
+        date: e.date,
+
+        extendedProps: {
+          is_holiday: e.is_holiday
+        },
+
+        backgroundColor: e.is_holiday
+          ? "#dc2626"
+          : "#2563eb",
+
+        borderColor: e.is_holiday
+          ? "#dc2626"
+          : "#2563eb"
+      })
+    );
+
+    setEvents([
+      ...dbEvents,
+      ...holidays
+    ]);
   }
+
+  /* =========================
+     CREATE EVENT
+     ========================= */
 
   function handleDateClick(info) {
     setSelectedDate(info.dateStr);
+
     setTitle("");
+
     setEditingEvent(null);
+
     setShowModal(true);
   }
 
+  /* =========================
+     EDIT EVENT
+     ========================= */
+
   function handleEventClick(info) {
     if (
-      info.event.extendedProps.is_holiday &&
+      info.event.extendedProps
+        .is_holiday &&
       !isAdmin
     ) {
       alert(
         "Nur Admins können Feiertage bearbeiten."
       );
+
       return;
     }
 
     setEditingEvent(info.event);
+
     setTitle(info.event.title);
+
     setSelectedDate(
       info.event.startStr.slice(0, 10)
     );
+
     setShowModal(true);
   }
+
+  /* =========================
+     SAVE EVENT
+     ========================= */
 
   async function saveEvent() {
     if (!title.trim()) return;
 
-    if (editingEvent) {
+    if (
+      editingEvent &&
+      !String(editingEvent.id).startsWith(
+        "holiday-"
+      )
+    ) {
       await supabase
         .from("events")
         .update({
@@ -247,12 +323,31 @@ const holidays = [
     }
 
     setShowModal(false);
+
     setEditingEvent(null);
+
     loadEvents();
   }
 
+  /* =========================
+     DELETE EVENT
+     ========================= */
+
   async function deleteEvent() {
     if (!editingEvent) return;
+
+    // generated holidays cannot be deleted
+    if (
+      String(editingEvent.id).startsWith(
+        "holiday-"
+      )
+    ) {
+      alert(
+        "Dynamische Feiertage können nicht gelöscht werden."
+      );
+
+      return;
+    }
 
     await supabase
       .from("events")
@@ -260,16 +355,35 @@ const holidays = [
       .eq("id", editingEvent.id);
 
     setShowModal(false);
+
     setEditingEvent(null);
+
     loadEvents();
   }
 
+  /* =========================
+     LOADING
+     ========================= */
+
   if (!group) {
-    return <div style={{ padding: 40 }}>Lade...</div>;
+    return (
+      <div style={{ padding: 40 }}>
+        Lade...
+      </div>
+    );
   }
 
+  /* =========================
+     RENDER
+     ========================= */
+
   return (
-    <div style={styles.page}>
+    <div
+      style={{
+        ...styles.page,
+        padding: isMobile ? 10 : 30
+      }}
+    >
       <h1>{group.name}</h1>
 
       <div style={styles.calendar}>
@@ -282,16 +396,30 @@ const holidays = [
           locale="de"
           firstDay={1}
           events={events}
-          dateClick={handleDateClick}
-          eventClick={handleEventClick}
+          height="auto"
+
+          headerToolbar={{
+            left: "prev,next today",
+            center: "title",
+            right: ""
+          }}
+
           buttonText={{
             today: "Heute",
             month: "Monat",
             week: "Woche",
             day: "Tag"
           }}
+
+          dayMaxEventRows={2}
+
+          dateClick={handleDateClick}
+
+          eventClick={handleEventClick}
         />
       </div>
+
+      {/* MODAL */}
 
       {showModal && (
         <div style={styles.modalBg}>
@@ -311,10 +439,12 @@ const holidays = [
               }
               placeholder="Titel"
               style={styles.input}
+              autoFocus
             />
 
             <div style={styles.row}>
               <button
+                style={styles.button}
                 onClick={() =>
                   setShowModal(false)
                 }
@@ -323,12 +453,18 @@ const holidays = [
               </button>
 
               {editingEvent && (
-                <button onClick={deleteEvent}>
+                <button
+                  style={styles.deleteButton}
+                  onClick={deleteEvent}
+                >
                   Löschen
                 </button>
               )}
 
-              <button onClick={saveEvent}>
+              <button
+                style={styles.button}
+                onClick={saveEvent}
+              >
                 Speichern
               </button>
             </div>
@@ -345,36 +481,65 @@ const holidays = [
 
 const styles = {
   page: {
-    padding: 30,
-    fontFamily: "Arial"
+    fontFamily: "Arial",
+    background: "#f5f6fa",
+    minHeight: "100vh"
   },
+
   calendar: {
-    background: "#fff",
-    padding: 20,
-    borderRadius: 10
+    background: "white",
+    padding: 15,
+    borderRadius: 12,
+    overflowX: "auto"
   },
+
   modalBg: {
     position: "fixed",
     inset: 0,
     background: "rgba(0,0,0,0.5)",
     display: "flex",
     alignItems: "center",
-    justifyContent: "center"
+    justifyContent: "center",
+    zIndex: 9999
   },
+
   modal: {
     background: "white",
     padding: 20,
-    borderRadius: 10,
-    width: 300
+    borderRadius: 12,
+    width: "90vw",
+    maxWidth: 320
   },
+
   input: {
     width: "100%",
-    padding: 8,
+    padding: 10,
     marginTop: 10,
-    marginBottom: 10
+    marginBottom: 10,
+    borderRadius: 6,
+    border: "1px solid #ccc",
+    boxSizing: "border-box"
   },
+
   row: {
     display: "flex",
-    justifyContent: "space-between"
+    justifyContent: "space-between",
+    gap: 10
+  },
+
+  button: {
+    padding: "10px 14px",
+    border: "none",
+    borderRadius: 6,
+    cursor: "pointer"
+  },
+
+  deleteButton: {
+    padding: "10px 14px",
+    border: "none",
+    borderRadius: 6,
+    cursor: "pointer",
+    background: "#dc2626",
+    color: "white"
   }
 };
