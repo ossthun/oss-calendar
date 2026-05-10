@@ -14,6 +14,7 @@ function easterSunday(year) {
   const f = Math.floor;
   const G = year % 19;
   const C = f(year / 100);
+
   const H =
     (C -
       f(C / 4) -
@@ -26,7 +27,8 @@ function easterSunday(year) {
     H -
     f(H / 28) *
       (1 -
-        f(29 / (H + 1)) * f((21 - G) / 11));
+        f(29 / (H + 1)) *
+          f((21 - G) / 11));
 
   const J =
     (year +
@@ -72,7 +74,7 @@ function pentecostMonday(year) {
   return d.toISOString().slice(0, 10);
 }
 
-function getSwissHolidays(year, token) {
+function getSwissHolidays(year) {
   return [
     {
       title: "Neujahr",
@@ -107,11 +109,14 @@ function getSwissHolidays(year, token) {
       date: `${year}-12-26`
     }
   ].map((h, i) => ({
-    id: `h-${i}`,
-    group_token: token,
+    id: `holiday-${year}-${i}`,
     title: h.title,
     date: h.date,
-    is_holiday: true
+    backgroundColor: "#dc2626",
+    borderColor: "#dc2626",
+    extendedProps: {
+      is_holiday: true
+    }
   }));
 }
 
@@ -125,11 +130,12 @@ export default function GroupPage() {
   const { token, admin } = router.query;
 
   const [group, setGroup] = useState(null);
+
   const [events, setEvents] = useState([]);
 
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] =
+    useState(false);
 
-  const [showModal, setShowModal] = useState(false);
   const [showModal, setShowModal] =
     useState(false);
 
@@ -141,8 +147,54 @@ export default function GroupPage() {
   const [editingEvent, setEditingEvent] =
     useState(null);
 
-  const [editingHoliday, setEditingHoliday] =
+  const [isMobile, setIsMobile] =
     useState(false);
+
+  /* =========================
+     MOBILE DETECTION
+     ========================= */
+
+  useEffect(() => {
+    function handleResize() {
+      setIsMobile(window.innerWidth < 700);
+    }
+
+    handleResize();
+
+    window.addEventListener(
+      "resize",
+      handleResize
+    );
+
+    return () =>
+      window.removeEventListener(
+        "resize",
+        handleResize
+      );
+  }, []);
+
+  /* =========================
+     LOCK BACKGROUND SCROLL
+     ========================= */
+
+  useEffect(() => {
+    if (showModal) {
+      document.body.style.overflow =
+        "hidden";
+    } else {
+      document.body.style.overflow =
+        "auto";
+    }
+
+    return () => {
+      document.body.style.overflow =
+        "auto";
+    };
+  }, [showModal]);
+
+  /* =========================
+     LOAD DATA
+     ========================= */
 
   useEffect(() => {
     if (token) {
@@ -160,12 +212,9 @@ export default function GroupPage() {
 
     setGroup(data);
 
-    if (data?.admin_token === admin) {
-      setIsAdmin(true);
-    } else {
-      setIsAdmin(false);
-    }
-    setIsAdmin(data?.admin_token === admin);
+    setIsAdmin(
+      data?.admin_token === admin
+    );
   }
 
   async function loadEvents() {
@@ -174,8 +223,16 @@ export default function GroupPage() {
       .select("*")
       .eq("group_token", token);
 
-    setEvents(
-      (data || []).map((e) => ({
+    const year = new Date().getFullYear();
+
+    const holidays = [
+      ...getSwissHolidays(year - 1),
+      ...getSwissHolidays(year),
+      ...getSwissHolidays(year + 1)
+    ];
+
+    const dbEvents = (data || []).map(
+      (e) => ({
         id: e.id,
         title: e.title,
         date: e.date,
@@ -191,41 +248,19 @@ export default function GroupPage() {
         borderColor: e.is_holiday
           ? "#dc2626"
           : "#2563eb"
-      }))
-    const year = new Date().getFullYear();
-    const holidays = getSwissHolidays(
-      year,
-      token
+      })
     );
 
-    const dbEvents = (data || []).map((e) => ({
-      id: e.id,
-      title: e.title,
-      date: e.date,
-      extendedProps: {
-        is_holiday: e.is_holiday
-      },
-      backgroundColor: e.is_holiday
-        ? "#dc2626"
-        : "#2563eb",
-      borderColor: e.is_holiday
-        ? "#dc2626"
-        : "#2563eb"
-    }));
-
-    const holidayEvents = holidays.map((h) => ({
-      ...h,
-      backgroundColor: "#dc2626",
-      borderColor: "#dc2626",
-      extendedProps: {
-        is_holiday: true
-      }
-    }));
-
-    setEvents([...dbEvents, ...holidayEvents]);
+    setEvents([
+      ...dbEvents,
+      ...holidays
+    ]);
   }
 
-  // CREATE EVENT
+  /* =========================
+     EVENT HANDLERS
+     ========================= */
+
   function handleDateClick(info) {
     setSelectedDate(info.dateStr);
 
@@ -233,29 +268,21 @@ export default function GroupPage() {
 
     setEditingEvent(null);
 
-    setEditingHoliday(false);
-
     setShowModal(true);
   }
 
-  // EDIT EVENT
   function handleEventClick(info) {
-    const isHoliday =
-      info.event.extendedProps.is_holiday;
-
-    // MEMBERS CANNOT EDIT HOLIDAYS
-    if (isHoliday && !isAdmin) {
     if (
-      info.event.extendedProps.is_holiday &&
+      info.event.extendedProps
+        .is_holiday &&
       !isAdmin
     ) {
       alert(
         "Nur Admins können Feiertage bearbeiten."
       );
+
       return;
     }
-
-    setEditingHoliday(isHoliday);
 
     setEditingEvent(info.event);
 
@@ -271,7 +298,12 @@ export default function GroupPage() {
   async function saveEvent() {
     if (!title.trim()) return;
 
-    if (editingEvent) {
+    if (
+      editingEvent &&
+      !String(editingEvent.id).startsWith(
+        "holiday-"
+      )
+    ) {
       await supabase
         .from("events")
         .update({
@@ -292,13 +324,23 @@ export default function GroupPage() {
 
     setShowModal(false);
 
-    setEditingEvent(null);
-
     loadEvents();
   }
 
   async function deleteEvent() {
     if (!editingEvent) return;
+
+    if (
+      String(editingEvent.id).startsWith(
+        "holiday-"
+      )
+    ) {
+      alert(
+        "Feiertage können nicht gelöscht werden."
+      );
+
+      return;
+    }
 
     await supabase
       .from("events")
@@ -307,28 +349,34 @@ export default function GroupPage() {
 
     setShowModal(false);
 
-    setEditingEvent(null);
-
     loadEvents();
   }
 
+  /* =========================
+     LOADING
+     ========================= */
+
   if (!group) {
     return (
-      <div style={styles.loading}>
-        Lade Gruppe...
+      <div style={{ padding: 40 }}>
+        Lade...
       </div>
     );
-    return <div style={{ padding: 40 }}>Lade...</div>;
   }
 
+  /* =========================
+     RENDER
+     ========================= */
+
   return (
-    <div style={styles.page}>
-      <div style={styles.header}>
-        <h1>{group.name}</h1>
-      </div>
+    <div
+      style={{
+        ...styles.page,
+        padding: isMobile ? 12 : 30
+      }}
+    >
       <h1>{group.name}</h1>
 
-      <div style={styles.calendarWrap}>
       <div style={styles.calendar}>
         <FullCalendar
           plugins={[
@@ -336,22 +384,22 @@ export default function GroupPage() {
             interactionPlugin
           ]}
           initialView="dayGridMonth"
+          locale="de"
+          firstDay={1}
           events={events}
           height="auto"
 
-          locale="de"
-
-          firstDay={1}
-
-          events={events}
-          dateClick={handleDateClick}
-          eventClick={handleEventClick}
-          buttonText={{
-            today: "Heute",
-            month: "Monat",
-            week: "Woche",
-            day: "Tag"
+          headerToolbar={{
+            left: "prev,next",
+            center: "title",
+            right: "today"
           }}
+
+          buttonText={{
+            today: "Heute"
+          }}
+
+          dayMaxEventRows={2}
 
           dateClick={handleDateClick}
 
@@ -359,18 +407,14 @@ export default function GroupPage() {
         />
       </div>
 
-      {/* MODAL */}
       {showModal && (
         <div style={styles.overlay}>
-        <div style={styles.modalBg}>
           <div style={styles.modal}>
             <h2>
-            <h3>
               {editingEvent
                 ? "Termin bearbeiten"
                 : "Neuer Termin"}
             </h2>
-            </h3>
 
             <p>{selectedDate}</p>
 
@@ -385,7 +429,6 @@ export default function GroupPage() {
             />
 
             <div style={styles.modalButtons}>
-            <div style={styles.row}>
               <button
                 style={styles.cancelBtn}
                 onClick={() =>
@@ -400,7 +443,6 @@ export default function GroupPage() {
                   style={styles.deleteBtn}
                   onClick={deleteEvent}
                 >
-                <button onClick={deleteEvent}>
                   Löschen
                 </button>
               )}
@@ -409,16 +451,9 @@ export default function GroupPage() {
                 style={styles.saveBtn}
                 onClick={saveEvent}
               >
-              <button onClick={saveEvent}>
                 Speichern
               </button>
             </div>
-
-            {editingHoliday && (
-              <p style={styles.holidayInfo}>
-                Feiertag (nur Admin editierbar)
-              </p>
-            )}
           </div>
         </div>
       )}
@@ -432,100 +467,76 @@ export default function GroupPage() {
 
 const styles = {
   page: {
-    padding: 40,
     fontFamily: "Arial",
     background: "#f5f6fa",
     minHeight: "100vh"
-    padding: 30,
-    fontFamily: "Arial"
   },
 
-  header: {
-    marginBottom: 20
-  },
-
-  calendarWrap: {
-    background: "white",
   calendar: {
-    background: "#fff",
-    padding: 20,
+    background: "white",
+    padding: 12,
     borderRadius: 12
   },
 
-  loading: {
-    padding: 40
-    borderRadius: 10
-  },
-
   overlay: {
-  modalBg: {
     position: "fixed",
     inset: 0,
-    background: "rgba(0,0,0,0.5)",
+    background: "rgba(0,0,0,0.45)",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 9999
-    justifyContent: "center"
+    zIndex: 99999
   },
 
   modal: {
     background: "white",
     padding: 20,
-    borderRadius: 10,
-    width: 320
-    width: 300
+    borderRadius: 12,
+    width: "90vw",
+    maxWidth: 340,
+    boxSizing: "border-box"
   },
 
   input: {
     width: "100%",
-    padding: 10,
-    padding: 8,
+    padding: 12,
     marginTop: 10,
-    marginBottom: 10,
-    borderRadius: 6,
+    marginBottom: 14,
+    borderRadius: 8,
     border: "1px solid #ccc",
-    boxSizing: "border-box"
-    marginBottom: 10
+    boxSizing: "border-box",
+    fontSize: 16
   },
 
   modalButtons: {
-  row: {
     display: "flex",
     gap: 10,
     justifyContent: "flex-end"
   },
 
   saveBtn: {
-    padding: "8px 12px",
+    padding: "10px 14px",
     background: "#2563eb",
     color: "white",
     border: "none",
-    borderRadius: 6,
+    borderRadius: 8,
     cursor: "pointer"
   },
 
   cancelBtn: {
-    padding: "8px 12px",
+    padding: "10px 14px",
     background: "#ddd",
     border: "none",
-    borderRadius: 6,
+    borderRadius: 8,
     cursor: "pointer"
   },
 
   deleteBtn: {
-    padding: "8px 12px",
+    padding: "10px 14px",
     background: "#dc2626",
     color: "white",
     border: "none",
-    borderRadius: 6,
+    borderRadius: 8,
     cursor: "pointer"
-  },
-
-  holidayInfo: {
-    marginTop: 10,
-    color: "#dc2626",
-    fontSize: 12
-    justifyContent: "space-between"
   }
 };
