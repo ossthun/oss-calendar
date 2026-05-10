@@ -31,7 +31,8 @@ export default function Home() {
     await supabase.from("groups").insert([
       {
         name,
-        token: generateToken()
+        token: generateToken(),
+        admin_token: generateToken()
       }
     ]);
 
@@ -52,7 +53,7 @@ export default function Home() {
   }
 
   async function deleteGroup(group) {
-    const ok = confirm("Delete group and all events?");
+    const ok = confirm("Delete this group and all events?");
     if (!ok) return;
 
     await supabase
@@ -68,15 +69,21 @@ export default function Home() {
     loadGroups();
   }
 
-  function openGroup(group) {
+  function openMember(group) {
     router.push(`/group/${group.token}`);
+  }
+
+  function openAdmin(group) {
+    router.push(
+      `/group/${group.token}?admin=${group.admin_token}`
+    );
   }
 
   return (
     <div style={styles.page}>
       <h1 style={styles.title}>Calendar Admin</h1>
 
-      {/* CREATE GROUP */}
+      {/* CREATE */}
       <div style={styles.box}>
         <h3>Create group</h3>
 
@@ -92,7 +99,7 @@ export default function Home() {
         </button>
       </div>
 
-      {/* GROUP LIST */}
+      {/* GROUPS */}
       <div style={styles.box}>
         <h3>Groups</h3>
 
@@ -100,14 +107,27 @@ export default function Home() {
           <div key={g.id} style={styles.row}>
             <div>
               <b>{g.name}</b>
+
               <div style={styles.small}>
+                Member:
+                <br />
                 /group/{g.token}
+              </div>
+
+              <div style={styles.small}>
+                Admin:
+                <br />
+                /group/{g.token}?admin={g.admin_token}
               </div>
             </div>
 
             <div style={styles.actions}>
-              <button onClick={() => openGroup(g)}>
-                Open
+              <button onClick={() => openMember(g)}>
+                Open Member
+              </button>
+
+              <button onClick={() => openAdmin(g)}>
+                Open Admin
               </button>
 
               <button onClick={() => renameGroup(g)}>
@@ -128,7 +148,6 @@ export default function Home() {
   );
 }
 
-/* STYLES */
 const styles = {
   page: {
     padding: 40,
@@ -170,10 +189,12 @@ const styles = {
   },
   actions: {
     display: "flex",
-    gap: 10
+    gap: 10,
+    alignItems: "center"
   },
   small: {
     fontSize: 12,
-    color: "#666"
+    color: "#666",
+    marginTop: 5
   }
 };
