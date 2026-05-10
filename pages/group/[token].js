@@ -17,6 +17,8 @@ export default function GroupPage() {
   const [selectedDate, setSelectedDate] = useState("");
   const [title, setTitle] = useState("");
 
+  const [editName, setEditName] = useState("");
+
   useEffect(() => {
     if (token) {
       loadGroup();
@@ -32,6 +34,7 @@ export default function GroupPage() {
       .single();
 
     setGroup(data);
+    setEditName(data?.name || "");
   }
 
   async function loadEvents() {
@@ -70,14 +73,62 @@ export default function GroupPage() {
     loadEvents();
   }
 
+  // 🔧 UPDATE GROUP NAME
+  async function renameGroup() {
+    await supabase
+      .from("groups")
+      .update({ name: editName })
+      .eq("token", token);
+
+    loadGroup();
+  }
+
+  // 🗑 DELETE GROUP
+  async function deleteGroup() {
+    const confirmDelete = confirm(
+      "Delete this group? This will remove ALL events."
+    );
+
+    if (!confirmDelete) return;
+
+    await supabase.from("events").delete().eq("group_token", token);
+
+    await supabase.from("groups").delete().eq("token", token);
+
+    router.push("/");
+  }
+
   if (!group) {
     return <div style={styles.loading}>Loading group...</div>;
   }
 
   return (
     <div style={styles.page}>
+      {/* HEADER */}
       <h1 style={styles.title}>{group.name}</h1>
 
+      {/* ADMIN PANEL */}
+      <div style={styles.adminBox}>
+        <h3>Admin controls</h3>
+
+        <input
+          value={editName}
+          onChange={(e) => setEditName(e.target.value)}
+          style={styles.input}
+        />
+
+        <div style={styles.row}>
+          <button style={styles.save} onClick={renameGroup}>
+            Rename group
+          </button>
+
+          <button style={styles.delete} onClick={deleteGroup}>
+            Delete group
+          </button>
+        </div>
+      </div>
+
+      {/* CALENDAR */}
       <div style={styles.calendarWrap}>
         <FullCalendar
           plugins={[dayGridPlugin, interactionPlugin]}
@@ -92,29 +143,23 @@ export default function GroupPage() {
       {showModal && (
         <div style={styles.overlay}>
           <div style={styles.modal}>
-            <h2 style={styles.heading}>New Event</h2>
+            <h2>New Event</h2>
 
-            <p style={styles.dateText}>
-              {selectedDate}
-            </p>
+            <p>{selectedDate}</p>
 
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Event title"
               style={styles.input}
-              autoFocus
             />
 
-            <div style={styles.buttons}>
-              <button
-                style={styles.cancel}
-                onClick={() => setShowModal(false)}
-              >
+            <div style={styles.row}>
+              <button onClick={() => setShowModal(false)}>
                 Cancel
               </button>
 
-              <button style={styles.save} onClick={createEvent}>
+              <button onClick={createEvent} style={styles.save}>
                 Save
               </button>
             </div>
@@ -135,6 +180,13 @@ const styles = {
   },
 
   title: {
+    marginBottom: 10
+  },
+
+  adminBox: {
+    background: "white",
+    padding: 15,
+    borderRadius: 10,
     marginBottom: 20
   },
 
@@ -144,16 +196,42 @@ const styles = {
     borderRadius: 12
   },
 
-  loading: {
-    padding: 40
+  input: {
+    width: "100%",
+    padding: 10,
+    marginTop: 10,
+    marginBottom: 10,
+    border: "1px solid #ccc",
+    borderRadius: 6,
+    boxSizing: "border-box"
+  },
+
+  row: {
+    display: "flex",
+    gap: 10
+  },
+
+  save: {
+    padding: "8px 12px",
+    background: "#2563eb",
+    color: "white",
+    border: "none",
+    borderRadius: 6,
+    cursor: "pointer"
+  },
+
+  delete: {
+    padding: "8px 12px",
+    background: "#dc2626",
+    color: "white",
+    border: "none",
+    borderRadius: 6,
+    cursor: "pointer"
   },
 
   overlay: {
     position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    inset: 0,
     background: "rgba(0,0,0,0.5)",
     display: "flex",
     justifyContent: "center",
@@ -165,49 +243,10 @@ const styles = {
     background: "white",
     padding: 20,
     borderRadius: 10,
-    width: 320,
-    boxSizing: "border-box"
+    width: 320
   },
 
-  heading: {
-    marginBottom: 10
-  },
-
-  dateText: {
-    color: "#666",
-    marginBottom: 10
-  },
-
-  input: {
-    width: "100%",
-    padding: 10,
-    marginTop: 5,
-    marginBottom: 15,
-    border: "1px solid #ccc",
-    borderRadius: 6,
-    boxSizing: "border-box"
-  },
-
-  buttons: {
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: 10
-  },
-
-  cancel: {
-    padding: "8px 12px",
-    background: "#ddd",
-    border: "none",
-    cursor: "pointer",
-    borderRadius: 6
-  },
-
-  save: {
-    padding: "8px 12px",
-    background: "#2563eb",
-    color: "white",
-    border: "none",
-    cursor: "pointer",
-    borderRadius: 6
+  loading: {
+    padding: 40
   }
 };
