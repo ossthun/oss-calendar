@@ -163,11 +163,13 @@ export default function GroupPage() {
       .select("*")
       .eq("group_token", token);
 
-    const year = new Date().getFullYear();
-    const holidays = getSwissHolidays(
-      year,
-      token
-    );
+   const year = new Date().getFullYear();
+
+const holidays = [
+  ...getSwissHolidays(year - 1, token),
+  ...getSwissHolidays(year, token),
+  ...getSwissHolidays(year + 1, token)
+];
 
     const dbEvents = (data || []).map((e) => ({
       id: e.id,
