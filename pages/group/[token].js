@@ -4,6 +4,7 @@ import { supabase } from "../../lib/supabaseClient";
 
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
+import interactionPlugin from "@fullcalendar/interaction";
 
 export default function GroupPage() {
   const router = useRouter();
@@ -12,7 +13,6 @@ export default function GroupPage() {
   const [group, setGroup] = useState(null);
   const [events, setEvents] = useState([]);
 
-  // Load group + events when token is ready
   useEffect(() => {
     if (token) {
       loadGroup();
@@ -20,47 +20,36 @@ export default function GroupPage() {
     }
   }, [token]);
 
-  // Fetch group info
   async function loadGroup() {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("groups")
       .select("*")
       .eq("token", token)
       .single();
 
-    if (!error) {
-      setGroup(data);
-    } else {
-      console.log("Group error:", error);
-    }
+    setGroup(data);
   }
 
-  // Fetch events for this group
   async function loadEvents() {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("events")
       .select("*")
       .eq("group_token", token);
 
-    if (!error) {
-      setEvents(
-        (data || []).map((e) => ({
-          id: e.id,
-          title: e.title,
-          date: e.date
-        }))
-      );
-    } else {
-      console.log("Events error:", error);
-    }
+    setEvents(
+      (data || []).map((e) => ({
+        id: e.id,
+        title: e.title,
+        date: e.date
+      }))
+    );
   }
 
-  // Create event when clicking a day
   async function handleDateClick(info) {
     const title = prompt("Event title?");
     if (!title) return;
 
-    const { error } = await supabase.from("events").insert([
+    await supabase.from("events").insert([
       {
         group_token: token,
         title,
@@ -68,14 +57,9 @@ export default function GroupPage() {
       }
     ]);
 
-    if (!error) {
-      loadEvents(); // refresh calendar
-    } else {
-      console.log("Insert error:", error);
-    }
+    loadEvents();
   }
 
-  // Loading state
   if (!group) {
     return (
       <div style={{ padding: 40, fontFamily: "Arial" }}>
@@ -86,16 +70,15 @@ export default function GroupPage() {
 
   return (
     <div style={{ padding: 40, fontFamily: "Arial" }}>
-      {/* Header */}
-      <h1 style={{ marginBottom: 5 }}>{group.name}</h1>
+      <h1>{group.name}</h1>
+
       <p style={{ color: "gray" }}>
         Group token: <code>{group.token}</code>
       </p>
 
-      {/* Calendar */}
       <div style={{ marginTop: 30 }}>
         <FullCalendar
-          plugins={[dayGridPlugin]}
+          plugins={[dayGridPlugin, interactionPlugin]}
           initialView="dayGridMonth"
           events={events}
           height="auto"
