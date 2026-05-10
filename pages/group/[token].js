@@ -17,10 +17,17 @@ export default function GroupPage() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   const [showModal, setShowModal] = useState(false);
-  const [selectedDate, setSelectedDate] = useState("");
+
+  const [selectedDate, setSelectedDate] =
+    useState("");
+
   const [title, setTitle] = useState("");
 
-  const [editingEvent, setEditingEvent] = useState(null);
+  const [editingEvent, setEditingEvent] =
+    useState(null);
+
+  const [editingHoliday, setEditingHoliday] =
+    useState(false);
 
   useEffect(() => {
     if (token) {
@@ -38,7 +45,6 @@ export default function GroupPage() {
 
     setGroup(data);
 
-    // check admin access
     if (data?.admin_token === admin) {
       setIsAdmin(true);
     } else {
@@ -56,21 +62,50 @@ export default function GroupPage() {
       (data || []).map((e) => ({
         id: e.id,
         title: e.title,
-        date: e.date
+        date: e.date,
+        extendedProps: {
+          is_holiday: e.is_holiday
+        },
+
+        backgroundColor: e.is_holiday
+          ? "#dc2626"
+          : "#2563eb",
+
+        borderColor: e.is_holiday
+          ? "#dc2626"
+          : "#2563eb"
       }))
     );
   }
 
-  // CREATE EVENT
+  // CREATE
   function handleDateClick(info) {
     setSelectedDate(info.dateStr);
+
     setTitle("");
+
     setEditingEvent(null);
+
+    setEditingHoliday(false);
+
     setShowModal(true);
   }
 
-  // EDIT EVENT
+  // EDIT
   function handleEventClick(info) {
+    const isHoliday =
+      info.event.extendedProps.is_holiday;
+
+    // MEMBERS CANNOT EDIT HOLIDAYS
+    if (isHoliday && !isAdmin) {
+      alert(
+        "Nur Admins können Feiertage bearbeiten."
+      );
+      return;
+    }
+
+    setEditingHoliday(isHoliday);
+
     setEditingEvent(info.event);
 
     setTitle(info.event.title);
@@ -98,12 +133,14 @@ export default function GroupPage() {
         {
           group_token: token,
           title,
-          date: selectedDate
+          date: selectedDate,
+          is_holiday: false
         }
       ]);
     }
 
     setShowModal(false);
+
     setEditingEvent(null);
 
     loadEvents();
@@ -124,43 +161,6 @@ export default function GroupPage() {
     loadEvents();
   }
 
-  // ADMIN ONLY
-  async function renameGroup() {
-    const newName = prompt(
-      "New group name:",
-      group.name
-    );
-
-    if (!newName) return;
-
-    await supabase
-      .from("groups")
-      .update({ name: newName })
-      .eq("token", token);
-
-    loadGroup();
-  }
-
-  async function deleteGroup() {
-    const ok = confirm(
-      "Delete this group and all events?"
-    );
-
-    if (!ok) return;
-
-    await supabase
-      .from("events")
-      .delete()
-      .eq("group_token", token);
-
-    await supabase
-      .from("groups")
-      .delete()
-      .eq("token", token);
-
-    router.push("/");
-  }
-
   if (!group) {
     return (
       <div style={styles.loading}>
@@ -171,31 +171,10 @@ export default function GroupPage() {
 
   return (
     <div style={styles.page}>
-      {/* HEADER */}
       <div style={styles.header}>
         <h1>{group.name}</h1>
-
-        {/* ADMIN CONTROLS */}
-        {isAdmin && (
-          <div style={styles.adminRow}>
-            <button
-              style={styles.adminBtn}
-              onClick={renameGroup}
-            >
-              Gruppe umbenennen
-            </button>
-
-            <button
-              style={styles.deleteBtn}
-              onClick={deleteGroup}
-            >
-              Gruppe löschen
-            </button>
-          </div>
-        )}
       </div>
 
-      {/* CALENDAR */}
       <div style={styles.calendarWrap}>
         <FullCalendar
           plugins={[
@@ -212,7 +191,6 @@ export default function GroupPage() {
         />
       </div>
 
-      {/* MODAL */}
       {showModal && (
         <div style={styles.overlay}>
           <div style={styles.modal}>
@@ -231,7 +209,6 @@ export default function GroupPage() {
               }
               placeholder="Titel"
               style={styles.input}
-              autoFocus
             />
 
             <div style={styles.modalButtons}>
@@ -260,6 +237,12 @@ export default function GroupPage() {
                 Speichern
               </button>
             </div>
+
+            {editingHoliday && (
+              <p style={styles.holidayInfo}>
+                Feiertag (nur Admin editierbar)
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -267,7 +250,6 @@ export default function GroupPage() {
   );
 }
 
-/* STYLES */
 const styles = {
   page: {
     padding: 40,
@@ -277,33 +259,7 @@ const styles = {
   },
 
   header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
     marginBottom: 20
-  },
-
-  adminRow: {
-    display: "flex",
-    gap: 10
-  },
-
-  adminBtn: {
-    padding: "8px 12px",
-    background: "#2563eb",
-    color: "white",
-    border: "none",
-    borderRadius: 6,
-    cursor: "pointer"
-  },
-
-  deleteBtn: {
-    padding: "8px 12px",
-    background: "#dc2626",
-    color: "white",
-    border: "none",
-    borderRadius: 6,
-    cursor: "pointer"
   },
 
   calendarWrap: {
@@ -364,5 +320,20 @@ const styles = {
     border: "none",
     borderRadius: 6,
     cursor: "pointer"
+  },
+
+  deleteBtn: {
+    padding: "8px 12px",
+    background: "#dc2626",
+    color: "white",
+    border: "none",
+    borderRadius: 6,
+    cursor: "pointer"
+  },
+
+  holidayInfo: {
+    marginTop: 10,
+    color: "#dc2626",
+    fontSize: 12
   }
 };
