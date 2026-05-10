@@ -13,7 +13,6 @@ export default function GroupPage() {
   const [group, setGroup] = useState(null);
   const [events, setEvents] = useState([]);
 
-  // modal state
   const [showModal, setShowModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
   const [title, setTitle] = useState("");
@@ -52,11 +51,12 @@ export default function GroupPage() {
 
   function handleDateClick(info) {
     setSelectedDate(info.dateStr);
+    setTitle("");
     setShowModal(true);
   }
 
   async function createEvent() {
-    if (!title) return;
+    if (!title.trim()) return;
 
     await supabase.from("events").insert([
       {
@@ -66,30 +66,18 @@ export default function GroupPage() {
       }
     ]);
 
-    setTitle("");
     setShowModal(false);
     loadEvents();
   }
 
   if (!group) {
-    return (
-      <div style={styles.loading}>
-        Loading group...
-      </div>
-    );
+    return <div style={styles.loading}>Loading group...</div>;
   }
 
   return (
     <div style={styles.page}>
-      {/* Header */}
-      <div style={styles.header}>
-        <h1 style={styles.title}>{group.name}</h1>
-        <div style={styles.subtitle}>
-          Group link: <code>{group.token}</code>
-        </div>
-      </div>
+      <h1 style={styles.title}>{group.name}</h1>
 
-      {/* Calendar */}
       <div style={styles.calendarWrap}>
         <FullCalendar
           plugins={[dayGridPlugin, interactionPlugin]}
@@ -100,32 +88,31 @@ export default function GroupPage() {
         />
       </div>
 
-      {/* Modal */}
+      {/* MODAL */}
       {showModal && (
-        <div style={styles.modalOverlay} onClick={() => setShowModal(false)}>
-          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ marginBottom: 10 }}>New Event</h2>
+        <div style={styles.overlay}>
+          <div style={styles.modal}>
+            <h2>New Event</h2>
 
-            <p style={{ color: "#666" }}>
-              Date: {selectedDate}
-            </p>
+            <p>Date: {selectedDate}</p>
 
             <input
-              placeholder="Event title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              placeholder="Event title"
               style={styles.input}
+              autoFocus
             />
 
-            <div style={styles.modalActions}>
+            <div style={styles.buttons}>
               <button
+                style={styles.cancel}
                 onClick={() => setShowModal(false)}
-                style={styles.cancelBtn}
               >
                 Cancel
               </button>
 
-              <button onClick={createEvent} style={styles.saveBtn}>
+              <button style={styles.save} onClick={createEvent}>
                 Save
               </button>
             </div>
@@ -136,78 +123,76 @@ export default function GroupPage() {
   );
 }
 
-/* Styles */
+/* STYLES — important fix here */
 const styles = {
   page: {
     padding: 40,
     fontFamily: "Arial",
-    background: "#f6f7fb",
+    background: "#f5f6fa",
     minHeight: "100vh"
   },
-  header: {
+
+  title: {
     marginBottom: 20
   },
-  title: {
-    margin: 0,
-    fontSize: 28
-  },
-  subtitle: {
-    color: "#666",
-    marginTop: 5
-  },
+
   calendarWrap: {
     background: "white",
     padding: 20,
-    borderRadius: 12,
-    boxShadow: "0 2px 10px rgba(0,0,0,0.05)"
+    borderRadius: 12
   },
+
   loading: {
-    padding: 40,
-    fontFamily: "Arial"
+    padding: 40
   },
-  modalOverlay: {
+
+  /* FIX: strong overlay layering */
+  overlay: {
     position: "fixed",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    background: "rgba(0,0,0,0.4)",
+    background: "rgba(0,0,0,0.5)",
     display: "flex",
+    justifyContent: "center",
     alignItems: "center",
-    justifyContent: "center"
+    zIndex: 9999
   },
+
   modal: {
     background: "white",
     padding: 20,
-    borderRadius: 12,
-    width: 300
+    borderRadius: 10,
+    width: 320,
+    zIndex: 10000
   },
+
   input: {
     width: "100%",
     padding: 10,
     marginTop: 10,
-    marginBottom: 10,
-    borderRadius: 8,
-    border: "1px solid #ccc"
+    marginBottom: 10
   },
-  modalActions: {
+
+  buttons: {
     display: "flex",
     justifyContent: "flex-end",
     gap: 10
   },
-  cancelBtn: {
+
+  cancel: {
     padding: "8px 12px",
-    background: "#eee",
+    background: "#ddd",
     border: "none",
-    borderRadius: 6,
     cursor: "pointer"
   },
-  saveBtn: {
+
+  save: {
     padding: "8px 12px",
     background: "#2563eb",
     color: "white",
     border: "none",
-    borderRadius: 6,
     cursor: "pointer"
   }
 };
