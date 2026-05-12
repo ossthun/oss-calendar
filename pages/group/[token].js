@@ -1,20 +1,11 @@
-import { useRouter } from "next/router";
-
-export default function GroupPage() {
-  const router = useRouter();
-
-  const { token } = router.query;
-
+export default function Home() {
   return (
-    <div
-      style={{
-        padding: 40,
-        fontFamily: "Arial"
-      }}
-    >
-      <h1>Kalender</h1>
+    <div style={{ padding: 40, fontFamily: "Arial" }}>
+      <h1>Admin Login</h1>
 
-      <p>Token: {token}</p>
+      <p>
+        Die Startseite funktioniert wieder.
+      </p>
     </div>
   );
 }
