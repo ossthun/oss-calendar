@@ -297,17 +297,68 @@ export default function GroupPage() {
     setShowModal(true);
   }
 
-  async function saveEvent() {
-    alert(
-      "Speichern wird später serverseitig aktiviert."
-    );
+ async function saveEvent() {
+  if (!isAdmin) return;
+  if (!title.trim()) return;
+
+  const eventId =
+    editingEvent &&
+    !String(editingEvent.id).startsWith("holiday-")
+      ? editingEvent.id
+      : null;
+
+  const res = await fetch("/api/save-event", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      token,
+      admin,
+      id: eventId,
+      title,
+      date: selectedDate,
+    }),
+  });
+
+  if (!res.ok) {
+    alert("Speichern fehlgeschlagen.");
+    return;
   }
 
+  setShowModal(false);
+  loadData();
+}
+
   async function deleteEvent() {
-    alert(
-      "Löschen wird später serverseitig aktiviert."
-    );
+  if (!isAdmin) return;
+  if (!editingEvent) return;
+
+  if (String(editingEvent.id).startsWith("holiday-")) {
+    alert("Feiertage können nicht gelöscht werden.");
+    return;
   }
+
+  const res = await fetch("/api/delete-event", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      token,
+      admin,
+      id: editingEvent.id,
+    }),
+  });
+
+  if (!res.ok) {
+    alert("Löschen fehlgeschlagen.");
+    return;
+  }
+
+  setShowModal(false);
+  loadData();
+}
 
   /* =========================
      LOADING
