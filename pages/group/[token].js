@@ -1,6 +1,5 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabaseClient";
 
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -203,25 +202,41 @@ export default function GroupPage() {
     }
   }, [token, admin]);
 
-  async function loadGroup() {
-    const { data } = await supabase
-      .from("groups")
-      .select("*")
-      .eq("token", token)
-      .single();
-
-    setGroup(data);
-
-    setIsAdmin(
-      data?.admin_token === admin
+async function loadGroup() {
+  try {
+    const res = await fetch(
+      `/api/calendar/${token}`
     );
-  }
 
-  async function loadEvents() {
-    const { data } = await supabase
-      .from("events")
-      .select("*")
-      .eq("group_token", token);
+    if (!res.ok) {
+      throw new Error("Fehler");
+    }
+
+    const data = await res.json();
+
+    setGroup({
+      name: data.groupName
+    });
+
+    setIsAdmin(data.isAdmin);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+async function loadEvents() {
+  try {
+    const res = await fetch(
+      `/api/calendar/${token}?admin=${admin || ""}`
+    );
+
+    if (!res.ok) {
+      throw new Error("Fehler");
+    }
+
+    const result = await res.json();
+
+    const data = result.events || [];
 
     const year = new Date().getFullYear();
 
@@ -231,26 +246,32 @@ export default function GroupPage() {
       ...getSwissHolidays(year + 1)
     ];
 
-    const dbEvents = (data || []).map(
-      (e) => ({
-        id: e.id,
-        title: e.title,
-        date: e.date,
+    const dbEvents = data.map((e) => ({
+      id: e.id,
+      title: e.title,
+      date: e.date,
 
-        extendedProps: {
-          is_holiday: e.is_holiday
-        },
+      extendedProps: {
+        is_holiday: e.is_holiday
+      },
 
-        backgroundColor: e.is_holiday
-          ? "#dc2626"
-          : "#2563eb",
+      backgroundColor: e.is_holiday
+        ? "#dc2626"
+        : "#2563eb",
 
-        borderColor: e.is_holiday
-          ? "#dc2626"
-          : "#2563eb"
-      })
-    );
+      borderColor: e.is_holiday
+        ? "#dc2626"
+        : "#2563eb"
+    }));
 
+    setEvents([
+      ...dbEvents,
+      ...holidays
+    ]);
+  } catch (err) {
+    console.error(err);
+  }
+}
     setEvents([
       ...dbEvents,
       ...holidays
