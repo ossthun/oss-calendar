@@ -1,8 +1,28 @@
+import { supabaseAdmin } from "../../../lib/supabaseAdmin";
+
 export default async function handler(req, res) {
-  return res.status(200).json({
-    success: true,
-    token: req.query.token,
-    country:
-      req.headers["x-vercel-ip-country"] || null,
-  });
+  try {
+    const { data, error } =
+      await supabaseAdmin
+        .from("groups")
+        .select("*")
+        .limit(1);
+
+    if (error) {
+      return res.status(500).json({
+        step: "supabase query",
+        error,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      step: "catch",
+      message: err.message,
+    });
+  }
 }
