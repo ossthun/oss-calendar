@@ -1,40 +1,47 @@
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 
 export default async function handler(req, res) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const { token } = req.query;
 
-  if (!supabaseUrl) {
-    return res.status(500).json({
-      error: "Missing NEXT_PUBLIC_SUPABASE_URL",
+  const country = req.headers["x-vercel-ip-country"];
+
+  if (country !== "CH") {
+    return res.status(403).json({
+      error: "Only accessible from Switzerland",
     });
   }
 
-  if (!serviceKey) {
-    return res.status(500).json({
-      error: "Missing SUPABASE_SERVICE_ROLE_KEY",
+  const { data: group, error: groupError } =
+    await supabaseAdmin
+      .from("groups")
+      .select("name, admin_token")
+      .eq("token", token)
+      .single();
+
+  if (groupError || !group) {
+    return res.status(404).json({
+      error: "Calendar not found",
     });
   }
 
-  const supabaseAdmin = createClient(
-    supabaseUrl,
-    serviceKey
-  );
+  const { data: events, error: eventsError } =
+    await supabaseAdmin
+      .from("events")
+      .select("*")
+      .eq("group_token", token)
+      .order("date");
 
-  const { data, error } = await supabaseAdmin
-    .from("groups")
-    .select("*")
-    .limit(1);
-
-  if (error) {
+  if (eventsError) {
     return res.status(500).json({
-      error: error.message,
-      details: error,
+      error: "Could not load events",
     });
   }
 
   return res.status(200).json({
-    success: true,
-    data,
+    groupName: group.name,
+    isAdmin:
+      group.admin_token &&
+      req.query.admin === group.admin_token,
+    events: events || [],
   });
 }
