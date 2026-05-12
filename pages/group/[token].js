@@ -202,80 +202,75 @@ export default function GroupPage() {
     }
   }, [token, admin]);
 
-async function loadGroup() {
-  try {
-    const res = await fetch(
-      `/api/calendar/${token}`
-    );
+  async function loadGroup() {
+    try {
+      const res = await fetch(
+        `/api/calendar/${token}?admin=${admin || ""}`
+      );
 
-    if (!res.ok) {
-      throw new Error("Fehler");
+      if (!res.ok) {
+        throw new Error("Fehler");
+      }
+
+      const data = await res.json();
+
+      setGroup({
+        name: data.groupName
+      });
+
+      setIsAdmin(data.isAdmin);
+    } catch (err) {
+      console.error(err);
     }
-
-    const data = await res.json();
-
-    setGroup({
-      name: data.groupName
-    });
-
-    setIsAdmin(data.isAdmin);
-  } catch (err) {
-    console.error(err);
   }
-}
 
-async function loadEvents() {
-  try {
-    const res = await fetch(
-      `/api/calendar/${token}?admin=${admin || ""}`
-    );
+  async function loadEvents() {
+    try {
+      const res = await fetch(
+        `/api/calendar/${token}?admin=${admin || ""}`
+      );
 
-    if (!res.ok) {
-      throw new Error("Fehler");
+      if (!res.ok) {
+        throw new Error("Fehler");
+      }
+
+      const result = await res.json();
+
+      const data = result.events || [];
+
+      const year = new Date().getFullYear();
+
+      const holidays = [
+        ...getSwissHolidays(year - 1),
+        ...getSwissHolidays(year),
+        ...getSwissHolidays(year + 1)
+      ];
+
+      const dbEvents = data.map((e) => ({
+        id: e.id,
+        title: e.title,
+        date: e.date,
+
+        extendedProps: {
+          is_holiday: e.is_holiday
+        },
+
+        backgroundColor: e.is_holiday
+          ? "#dc2626"
+          : "#2563eb",
+
+        borderColor: e.is_holiday
+          ? "#dc2626"
+          : "#2563eb"
+      }));
+
+      setEvents([
+        ...dbEvents,
+        ...holidays
+      ]);
+    } catch (err) {
+      console.error(err);
     }
-
-    const result = await res.json();
-
-    const data = result.events || [];
-
-    const year = new Date().getFullYear();
-
-    const holidays = [
-      ...getSwissHolidays(year - 1),
-      ...getSwissHolidays(year),
-      ...getSwissHolidays(year + 1)
-    ];
-
-    const dbEvents = data.map((e) => ({
-      id: e.id,
-      title: e.title,
-      date: e.date,
-
-      extendedProps: {
-        is_holiday: e.is_holiday
-      },
-
-      backgroundColor: e.is_holiday
-        ? "#dc2626"
-        : "#2563eb",
-
-      borderColor: e.is_holiday
-        ? "#dc2626"
-        : "#2563eb"
-    }));
-
-    setEvents([
-      ...dbEvents,
-      ...holidays
-    ]);
-  } catch (err) {
-    console.error(err);
-  }
-}
-    setEvents([
-      ...dbEvents,
-      ...holidays
-    ]);
   }
 
   /* =========================
@@ -283,6 +278,8 @@ async function loadEvents() {
      ========================= */
 
   function handleDateClick(info) {
+    if (!isAdmin) return;
+
     setSelectedDate(info.dateStr);
 
     setTitle("");
@@ -293,13 +290,14 @@ async function loadEvents() {
   }
 
   function handleEventClick(info) {
+    if (!isAdmin) return;
+
     if (
       info.event.extendedProps
-        .is_holiday &&
-      !isAdmin
+        .is_holiday
     ) {
       alert(
-        "Nur Admins können Feiertage bearbeiten."
+        "Feiertage können nicht bearbeitet werden."
       );
 
       return;
@@ -317,60 +315,15 @@ async function loadEvents() {
   }
 
   async function saveEvent() {
-    if (!title.trim()) return;
-
-    if (
-      editingEvent &&
-      !String(editingEvent.id).startsWith(
-        "holiday-"
-      )
-    ) {
-      await supabase
-        .from("events")
-        .update({
-          title,
-          date: selectedDate
-        })
-        .eq("id", editingEvent.id);
-    } else {
-      await supabase.from("events").insert([
-        {
-          group_token: token,
-          title,
-          date: selectedDate,
-          is_holiday: false
-        }
-      ]);
-    }
-
-    setShowModal(false);
-
-    loadEvents();
+    alert(
+      "Speichern wird später serverseitig aktiviert."
+    );
   }
 
   async function deleteEvent() {
-    if (!editingEvent) return;
-
-    if (
-      String(editingEvent.id).startsWith(
-        "holiday-"
-      )
-    ) {
-      alert(
-        "Feiertage können nicht gelöscht werden."
-      );
-
-      return;
-    }
-
-    await supabase
-      .from("events")
-      .delete()
-      .eq("id", editingEvent.id);
-
-    setShowModal(false);
-
-    loadEvents();
+    alert(
+      "Löschen wird später serverseitig aktiviert."
+    );
   }
 
   /* =========================
@@ -409,21 +362,16 @@ async function loadEvents() {
           firstDay={1}
           events={events}
           height="auto"
-
           headerToolbar={{
             left: "prev,next",
             center: "title",
             right: "today"
           }}
-
           buttonText={{
             today: "Heute"
           }}
-
           dayMaxEventRows={2}
-
           dateClick={handleDateClick}
-
           eventClick={handleEventClick}
         />
       </div>
