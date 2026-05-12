@@ -340,3 +340,22 @@ const styles = {
     marginTop: 5
   }
 };
+export async function getServerSideProps(
+  context
+) {
+  const cookie =
+    context.req.cookies.admin;
+
+  if (cookie !== "true") {
+    return {
+      redirect: {
+        destination: "/login",
+        permanent: false,
+      },
+    };
+  }
+
+  return {
+    props: {},
+  };
+}
