@@ -1,9 +1,7 @@
 export default function handler(req, res) {
   const { password } = req.body;
 
-  if (
-    password === process.env.ADMIN_PASSWORD
-  ) {
+  if (password === process.env.ADMIN_PASSWORD) {
     res.setHeader(
       "Set-Cookie",
       "admin=true; HttpOnly; Path=/; SameSite=Lax"
