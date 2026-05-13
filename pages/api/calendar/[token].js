@@ -1,3 +1,4 @@
+import { hashToken } from "../../../lib/hashToken";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 
 export default async function handler(req, res) {
@@ -41,7 +42,7 @@ export default async function handler(req, res) {
     groupName: group.name,
     isAdmin:
       group.admin_token &&
-      req.query.admin === group.admin_token,
+      req.query.admin && hashToken(admin) === group.admin_token_hash,
     events: events || [],
   });
 }
