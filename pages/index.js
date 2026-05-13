@@ -26,6 +26,7 @@ export default function Home() {
 
   async function handleLogin(e) {
     e.preventDefault();
+
     setError("");
 
     const res = await fetch("/api/login", {
@@ -42,11 +43,13 @@ export default function Home() {
     }
 
     setPassword("");
+
     await loadGroups();
   }
 
   async function logout() {
     await fetch("/api/logout");
+
     setLoggedIn(false);
     setGroups([]);
     setPassword("");
@@ -62,14 +65,23 @@ export default function Home() {
             <input
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) =>
+                setPassword(e.target.value)
+              }
               placeholder="Passwort"
               style={styles.input}
             />
 
-            {error && <p style={styles.error}>{error}</p>}
+            {error && (
+              <p style={styles.error}>
+                {error}
+              </p>
+            )}
 
-            <button type="submit" style={styles.button}>
+            <button
+              type="submit"
+              style={styles.button}
+            >
               Einloggen
             </button>
           </form>
@@ -84,10 +96,16 @@ export default function Home() {
         <div style={styles.header}>
           <div>
             <h1>Admin Dashboard</h1>
-            <p style={styles.note}>Kalendergruppen verwalten</p>
+
+            <p style={styles.note}>
+              Kalendergruppen verwalten
+            </p>
           </div>
 
-          <button onClick={logout} style={styles.logoutButton}>
+          <button
+            onClick={logout}
+            style={styles.logoutButton}
+          >
             Logout
           </button>
         </div>
@@ -97,31 +115,39 @@ export default function Home() {
         ) : (
           <div style={styles.list}>
             {groups.map((group) => (
-              <div key={group.id} style={styles.groupCard}>
+              <div
+                key={group.id}
+                style={styles.groupCard}
+              >
                 <h2>{group.name}</h2>
 
                 <p>
-                  <strong>Token:</strong> {group.token}
+                  <strong>Token:</strong>{" "}
+                  {group.token}
                 </p>
 
-               <div style={styles.buttonRow}>
-  <button
-    style={styles.openButton}
-    onClick={() =>
-      window.open(
-        `/group/${group.token}`,
-        "_blank"
-      )
-    }
-  >
-    Kalender öffnen
-  </button>
-</div>
+                <div style={styles.buttonRow}>
+                  <button
+                    style={styles.openButton}
+                    onClick={() =>
+                      window.open(
+                        `/group/${group.token}`,
+                        "_blank"
+                      )
+                    }
+                  >
+                    Kalender öffnen
+                  </button>
+                </div>
 
                 <p style={styles.small}>
-                  Für Bearbeitung brauchst du den Admin-Link mit
+                  Für Bearbeitung brauchst du
+                  den Admin-Link mit
                   <br />
-                  <code>/group/{group.token}?admin=DEIN_ADMIN_TOKEN</code>
+                  <code>
+                    /group/{group.token}
+                    ?admin=DEIN_ADMIN_TOKEN
+                  </code>
                 </p>
               </div>
             ))}
@@ -148,7 +174,8 @@ const styles = {
     width: "90%",
     maxWidth: 360,
     margin: "12vh auto 0",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+    boxShadow:
+      "0 10px 30px rgba(0,0,0,0.08)",
   },
 
   dashboard: {
@@ -157,7 +184,8 @@ const styles = {
     borderRadius: 12,
     maxWidth: 900,
     margin: "0 auto",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+    boxShadow:
+      "0 10px 30px rgba(0,0,0,0.08)",
   },
 
   header: {
@@ -220,19 +248,21 @@ const styles = {
     background: "#fafafa",
   },
 
-  <div style={styles.buttonRow}>
-  <button
-    style={styles.openButton}
-    onClick={() =>
-      window.open(
-        `/group/${group.token}`,
-        "_blank"
-      )
-    }
-  >
-    Kalender öffnen
-  </button>
-</div>
+  buttonRow: {
+    display: "flex",
+    gap: 10,
+    marginTop: 12,
+  },
+
+  openButton: {
+    padding: "10px 16px",
+    background: "#2563eb",
+    color: "white",
+    border: "none",
+    borderRadius: 8,
+    cursor: "pointer",
+    fontSize: 15,
+    fontWeight: "bold",
   },
 
   small: {
