@@ -1,5 +1,5 @@
-import { hashToken } from "../../lib/hashToken";
 import { supabaseAdmin } from "../../lib/supabaseAdmin";
+import { hashToken } from "../../lib/hashToken";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -19,16 +19,12 @@ export default async function handler(req, res) {
     .single();
 
   if (
-  groupError ||
-  !group ||
-  !admin ||
-  hashToken(admin) !==
-    group.admin_token_hash
-) {
-  return res.status(401).json({
-    error: "Not authorized",
-  });
-}
+    groupError ||
+    !group ||
+    hashToken(admin) !== group.admin_token_hash
+  ) {
+    return res.status(401).json({ error: "Not authorized" });
+  }
 
   const { error } = await supabaseAdmin
     .from("events")
