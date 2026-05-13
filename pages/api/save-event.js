@@ -18,9 +18,17 @@ export default async function handler(req, res) {
     .eq("token", token)
     .single();
 
-  if (groupError || !group || !admin || hashToken(admin) !== group.admin_token_hash) {
-    return res.status(401).json({ error: "Not authorized" });
-  }
+  if (
+  groupError ||
+  !group ||
+  !admin ||
+  hashToken(admin) !==
+    group.admin_token_hash
+) {
+  return res.status(401).json({
+    error: "Not authorized",
+  });
+}
 
   if (id) {
     const { error } = await supabaseAdmin
