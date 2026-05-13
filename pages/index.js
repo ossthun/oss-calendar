@@ -104,9 +104,19 @@ export default function Home() {
                   <strong>Token:</strong> {group.token}
                 </p>
 
-                <a href={`/group/${group.token}`} style={styles.link}>
-                  Öffentlichen Kalender öffnen
-                </a>
+               <div style={styles.buttonRow}>
+  <button
+    style={styles.openButton}
+    onClick={() =>
+      window.open(
+        `/group/${group.token}`,
+        "_blank"
+      )
+    }
+  >
+    Kalender öffnen
+  </button>
+</div>
 
                 <p style={styles.small}>
                   Für Bearbeitung brauchst du den Admin-Link mit
@@ -210,11 +220,19 @@ const styles = {
     background: "#fafafa",
   },
 
-  link: {
-    display: "inline-block",
-    marginTop: 8,
-    color: "#2563eb",
-    fontWeight: "bold",
+  <div style={styles.buttonRow}>
+  <button
+    style={styles.openButton}
+    onClick={() =>
+      window.open(
+        `/group/${group.token}`,
+        "_blank"
+      )
+    }
+  >
+    Kalender öffnen
+  </button>
+</div>
   },
 
   small: {
