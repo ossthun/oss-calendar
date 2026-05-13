@@ -26,7 +26,6 @@ export default function Home() {
 
   async function handleLogin(e) {
     e.preventDefault();
-
     setError("");
 
     const res = await fetch("/api/login", {
@@ -44,6 +43,13 @@ export default function Home() {
 
     setPassword("");
     await loadGroups();
+  }
+
+  async function logout() {
+    await fetch("/api/logout");
+    setLoggedIn(false);
+    setGroups([]);
+    setPassword("");
   }
 
   if (!loggedIn) {
@@ -75,11 +81,16 @@ export default function Home() {
   return (
     <div style={styles.page}>
       <div style={styles.dashboard}>
-        <h1>Admin Dashboard</h1>
+        <div style={styles.header}>
+          <div>
+            <h1>Admin Dashboard</h1>
+            <p style={styles.note}>Kalendergruppen verwalten</p>
+          </div>
 
-        <p style={styles.note}>
-          Angemeldet. Hier sind deine Kalendergruppen.
-        </p>
+          <button onClick={logout} style={styles.logoutButton}>
+            Logout
+          </button>
+        </div>
 
         {groups.length === 0 ? (
           <p>Keine Gruppen gefunden.</p>
@@ -93,16 +104,14 @@ export default function Home() {
                   <strong>Token:</strong> {group.token}
                 </p>
 
-                <a
-                  href={`/group/${group.token}`}
-                  style={styles.link}
-                >
+                <a href={`/group/${group.token}`} style={styles.link}>
                   Öffentlichen Kalender öffnen
                 </a>
 
                 <p style={styles.small}>
-                  Admin-Bearbeitung funktioniert über den Kalenderlink mit
-                  deinem geheimen Admin-Token.
+                  Für Bearbeitung brauchst du den Admin-Link mit
+                  <br />
+                  <code>/group/{group.token}?admin=DEIN_ADMIN_TOKEN</code>
                 </p>
               </div>
             ))}
@@ -141,6 +150,13 @@ const styles = {
     boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
   },
 
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 20,
+    alignItems: "center",
+  },
+
   input: {
     width: "100%",
     padding: 12,
@@ -162,6 +178,15 @@ const styles = {
     cursor: "pointer",
   },
 
+  logoutButton: {
+    padding: "10px 14px",
+    background: "#111827",
+    color: "white",
+    border: "none",
+    borderRadius: 8,
+    cursor: "pointer",
+  },
+
   error: {
     color: "#dc2626",
     marginTop: 0,
@@ -169,6 +194,7 @@ const styles = {
 
   note: {
     color: "#555",
+    marginTop: 0,
   },
 
   list: {
