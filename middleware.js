@@ -20,9 +20,9 @@ export function middleware(req) {
 
     if (country !== "CH") {
       return new NextResponse(
-        "Only accessible from Switzerland",
-        { status: 403 }
-      );
+  `Only accessible from Switzerland. Detected country: ${country || "unknown"}`,
+  { status: 403 }
+);
     }
   }
 
