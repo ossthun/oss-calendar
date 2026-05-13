@@ -1,11 +1,28 @@
-import { useState } from "react";
-import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
 
 export default function Home() {
-  const router = useRouter();
-
   const [password, setPassword] = useState("");
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [groups, setGroups] = useState([]);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    loadGroups();
+  }, []);
+
+  async function loadGroups() {
+    const res = await fetch("/api/admin-groups");
+
+    if (!res.ok) {
+      setLoggedIn(false);
+      return;
+    }
+
+    const data = await res.json();
+
+    setGroups(data.groups || []);
+    setLoggedIn(true);
+  }
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -20,34 +37,77 @@ export default function Home() {
       body: JSON.stringify({ password }),
     });
 
-   if (!res.ok) {
-  setError("Falsches Passwort.");
-  return;
-}
+    if (!res.ok) {
+      setError("Falsches Passwort.");
+      return;
+    }
 
-alert("Login erfolgreich.");
+    setPassword("");
+    await loadGroups();
+  }
+
+  if (!loggedIn) {
+    return (
+      <div style={styles.page}>
+        <div style={styles.card}>
+          <h1>Admin Login</h1>
+
+          <form onSubmit={handleLogin}>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Passwort"
+              style={styles.input}
+            />
+
+            {error && <p style={styles.error}>{error}</p>}
+
+            <button type="submit" style={styles.button}>
+              Einloggen
+            </button>
+          </form>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div style={styles.page}>
-      <div style={styles.card}>
-        <h1>Admin Login</h1>
+      <div style={styles.dashboard}>
+        <h1>Admin Dashboard</h1>
 
-        <form onSubmit={handleLogin}>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Passwort"
-            style={styles.input}
-          />
+        <p style={styles.note}>
+          Angemeldet. Hier sind deine Kalendergruppen.
+        </p>
 
-          {error && <p style={styles.error}>{error}</p>}
+        {groups.length === 0 ? (
+          <p>Keine Gruppen gefunden.</p>
+        ) : (
+          <div style={styles.list}>
+            {groups.map((group) => (
+              <div key={group.id} style={styles.groupCard}>
+                <h2>{group.name}</h2>
 
-          <button type="submit" style={styles.button}>
-            Einloggen
-          </button>
-        </form>
+                <p>
+                  <strong>Token:</strong> {group.token}
+                </p>
+
+                <a
+                  href={`/group/${group.token}`}
+                  style={styles.link}
+                >
+                  Öffentlichen Kalender öffnen
+                </a>
+
+                <p style={styles.small}>
+                  Admin-Bearbeitung funktioniert über den Kalenderlink mit
+                  deinem geheimen Admin-Token.
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -57,10 +117,9 @@ const styles = {
   page: {
     minHeight: "100vh",
     background: "#f5f6fa",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
     fontFamily: "Arial",
+    padding: 30,
+    boxSizing: "border-box",
   },
 
   card: {
@@ -69,6 +128,16 @@ const styles = {
     borderRadius: 12,
     width: "90%",
     maxWidth: 360,
+    margin: "12vh auto 0",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+  },
+
+  dashboard: {
+    background: "white",
+    padding: 30,
+    borderRadius: 12,
+    maxWidth: 900,
+    margin: "0 auto",
     boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
   },
 
@@ -96,5 +165,35 @@ const styles = {
   error: {
     color: "#dc2626",
     marginTop: 0,
+  },
+
+  note: {
+    color: "#555",
+  },
+
+  list: {
+    display: "grid",
+    gap: 16,
+    marginTop: 20,
+  },
+
+  groupCard: {
+    border: "1px solid #e5e7eb",
+    borderRadius: 10,
+    padding: 18,
+    background: "#fafafa",
+  },
+
+  link: {
+    display: "inline-block",
+    marginTop: 8,
+    color: "#2563eb",
+    fontWeight: "bold",
+  },
+
+  small: {
+    fontSize: 13,
+    color: "#666",
+    marginTop: 12,
   },
 };
