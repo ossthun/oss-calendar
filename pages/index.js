@@ -20,12 +20,12 @@ export default function Home() {
       body: JSON.stringify({ password }),
     });
 
-    if (!res.ok) {
-      setError("Falsches Passwort.");
-      return;
-    }
+   if (!res.ok) {
+  setError("Falsches Passwort.");
+  return;
+}
 
-    router.reload();
+alert("Login erfolgreich.");
   }
 
   return (
