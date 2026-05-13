@@ -13,7 +13,7 @@ export default async function handler(req, res) {
 
   const { data: group, error: groupError } = await supabaseAdmin
     .from("groups")
-    .select("admin_token")
+    .select("admin_token_hash")
     .eq("token", token)
     .single();
 
