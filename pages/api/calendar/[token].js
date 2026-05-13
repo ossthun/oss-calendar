@@ -1,8 +1,8 @@
-import { hashToken } from "../../../lib/hashToken";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
+import { hashToken } from "../../../lib/hashToken";
 
 export default async function handler(req, res) {
-  const { token } = req.query;
+  const { token, admin } = req.query;
 
   const country = req.headers["x-vercel-ip-country"];
 
@@ -41,8 +41,8 @@ export default async function handler(req, res) {
   return res.status(200).json({
     groupName: group.name,
     isAdmin:
-      group.admin_token &&
-      req.query.admin && hashToken(admin) === group.admin_token_hash,
+      !!admin &&
+      hashToken(admin) === group.admin_token_hash,
     events: events || [],
   });
 }
