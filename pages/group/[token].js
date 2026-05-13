@@ -43,10 +43,10 @@ function easterSunday(year) {
   const month = 3 + f((L + 40) / 44);
   const day = L + 28 - 31 * f(month / 4);
 
-  return `${year}-${String(month).padStart(
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(
     2,
     "0"
-  )}-${String(day).padStart(2, "0")}`;
+  )}`;
 }
 
 function easterMonday(year) {
@@ -75,38 +75,14 @@ function pentecostMonday(year) {
 
 function getSwissHolidays(year) {
   return [
-    {
-      title: "Neujahr",
-      date: `${year}-01-01`
-    },
-    {
-      title: "Karfreitag",
-      date: easterFriday(year)
-    },
-    {
-      title: "Ostermontag",
-      date: easterMonday(year)
-    },
-    {
-      title: "Auffahrt",
-      date: ascensionDay(year)
-    },
-    {
-      title: "Pfingstmontag",
-      date: pentecostMonday(year)
-    },
-    {
-      title: "Bundesfeier",
-      date: `${year}-08-01`
-    },
-    {
-      title: "Weihnachten",
-      date: `${year}-12-25`
-    },
-    {
-      title: "Stephanstag",
-      date: `${year}-12-26`
-    }
+    { title: "Neujahr", date: `${year}-01-01` },
+    { title: "Karfreitag", date: easterFriday(year) },
+    { title: "Ostermontag", date: easterMonday(year) },
+    { title: "Auffahrt", date: ascensionDay(year) },
+    { title: "Pfingstmontag", date: pentecostMonday(year) },
+    { title: "Bundesfeier", date: `${year}-08-01` },
+    { title: "Weihnachten", date: `${year}-12-25` },
+    { title: "Stephanstag", date: `${year}-12-26` },
   ].map((h, i) => ({
     id: `holiday-${year}-${i}`,
     title: h.title,
@@ -114,8 +90,8 @@ function getSwissHolidays(year) {
     backgroundColor: "#dc2626",
     borderColor: "#dc2626",
     extendedProps: {
-      is_holiday: true
-    }
+      is_holiday: true,
+    },
   }));
 }
 
@@ -125,29 +101,16 @@ function getSwissHolidays(year) {
 
 export default function GroupPage() {
   const router = useRouter();
-
   const { token, admin } = router.query;
 
   const [group, setGroup] = useState(null);
-
   const [events, setEvents] = useState([]);
-
-  const [isAdmin, setIsAdmin] =
-    useState(false);
-
-  const [showModal, setShowModal] =
-    useState(false);
-
-  const [selectedDate, setSelectedDate] =
-    useState("");
-
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedDate, setSelectedDate] = useState("");
   const [title, setTitle] = useState("");
-
-  const [editingEvent, setEditingEvent] =
-    useState(null);
-
-  const [isMobile, setIsMobile] =
-    useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
 
   /* =========================
      MOBILE DETECTION
@@ -160,16 +123,9 @@ export default function GroupPage() {
 
     handleResize();
 
-    window.addEventListener(
-      "resize",
-      handleResize
-    );
+    window.addEventListener("resize", handleResize);
 
-    return () =>
-      window.removeEventListener(
-        "resize",
-        handleResize
-      );
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   /* =========================
@@ -178,16 +134,13 @@ export default function GroupPage() {
 
   useEffect(() => {
     if (showModal) {
-      document.body.style.overflow =
-        "hidden";
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow =
-        "auto";
+      document.body.style.overflow = "auto";
     }
 
     return () => {
-      document.body.style.overflow =
-        "auto";
+      document.body.style.overflow = "auto";
     };
   }, [showModal]);
 
@@ -203,9 +156,7 @@ export default function GroupPage() {
 
   async function loadData() {
     try {
-      const res = await fetch(
-        `/api/calendar/${token}?admin=${admin || ""}`
-      );
+      const res = await fetch(`/api/calendar/${token}?admin=${admin || ""}`);
 
       if (!res.ok) {
         throw new Error("Fehler");
@@ -214,7 +165,7 @@ export default function GroupPage() {
       const result = await res.json();
 
       setGroup({
-        name: result.groupName
+        name: result.groupName,
       });
 
       setIsAdmin(result.isAdmin);
@@ -224,33 +175,21 @@ export default function GroupPage() {
       const holidays = [
         ...getSwissHolidays(year - 1),
         ...getSwissHolidays(year),
-        ...getSwissHolidays(year + 1)
+        ...getSwissHolidays(year + 1),
       ];
 
-      const dbEvents = (
-        result.events || []
-      ).map((e) => ({
+      const dbEvents = (result.events || []).map((e) => ({
         id: e.id,
         title: e.title,
         date: e.date,
-
         extendedProps: {
-          is_holiday: e.is_holiday
+          is_holiday: e.is_holiday,
         },
-
-        backgroundColor: e.is_holiday
-          ? "#dc2626"
-          : "#2563eb",
-
-        borderColor: e.is_holiday
-          ? "#dc2626"
-          : "#2563eb"
+        backgroundColor: e.is_holiday ? "#dc2626" : "#2563eb",
+        borderColor: e.is_holiday ? "#dc2626" : "#2563eb",
       }));
 
-      setEvents([
-        ...dbEvents,
-        ...holidays
-      ]);
+      setEvents([...dbEvents, ...holidays]);
     } catch (err) {
       console.error(err);
     }
@@ -261,115 +200,96 @@ export default function GroupPage() {
      ========================= */
 
   function handleDateClick(info) {
-    if (!isAdmin) return;
-
     setSelectedDate(info.dateStr);
-
     setTitle("");
-
     setEditingEvent(null);
-
     setShowModal(true);
   }
 
   function handleEventClick(info) {
-    if (!isAdmin) return;
+    if (info.event.extendedProps.is_holiday) {
+      alert("Feiertage können nicht bearbeitet werden.");
+      return;
+    }
 
-    if (
-      info.event.extendedProps
-        .is_holiday
-    ) {
-      alert(
-        "Feiertage können nicht bearbeitet werden."
-      );
-
+    if (!isAdmin) {
+      alert("Nur Admins können bestehende Termine bearbeiten oder löschen.");
       return;
     }
 
     setEditingEvent(info.event);
-
     setTitle(info.event.title);
-
-    setSelectedDate(
-      info.event.startStr.slice(0, 10)
-    );
-
+    setSelectedDate(info.event.startStr.slice(0, 10));
     setShowModal(true);
   }
 
- async function saveEvent() {
-  if (!isAdmin) return;
-  if (!title.trim()) return;
+  async function saveEvent() {
+    if (!title.trim()) return;
 
-  const eventId =
-    editingEvent &&
-    !String(editingEvent.id).startsWith("holiday-")
-      ? editingEvent.id
-      : null;
+    const eventId =
+      editingEvent && !String(editingEvent.id).startsWith("holiday-")
+        ? editingEvent.id
+        : null;
 
-  const res = await fetch("/api/save-event", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      token,
-      admin,
-      id: eventId,
-      title,
-      date: selectedDate,
-    }),
-  });
+    const res = await fetch("/api/save-event", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        token,
+        admin,
+        id: eventId,
+        title,
+        date: selectedDate,
+      }),
+    });
 
-  if (!res.ok) {
-    alert("Speichern fehlgeschlagen.");
-    return;
+    if (!res.ok) {
+      alert("Speichern fehlgeschlagen.");
+      return;
+    }
+
+    setShowModal(false);
+    loadData();
   }
-
-  setShowModal(false);
-  loadData();
-}
 
   async function deleteEvent() {
-  if (!isAdmin) return;
-  if (!editingEvent) return;
+    if (!isAdmin) return;
+    if (!editingEvent) return;
 
-  if (String(editingEvent.id).startsWith("holiday-")) {
-    alert("Feiertage können nicht gelöscht werden.");
-    return;
+    if (String(editingEvent.id).startsWith("holiday-")) {
+      alert("Feiertage können nicht gelöscht werden.");
+      return;
+    }
+
+    const res = await fetch("/api/delete-event", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        token,
+        admin,
+        id: editingEvent.id,
+      }),
+    });
+
+    if (!res.ok) {
+      alert("Löschen fehlgeschlagen.");
+      return;
+    }
+
+    setShowModal(false);
+    loadData();
   }
-
-  const res = await fetch("/api/delete-event", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      token,
-      admin,
-      id: editingEvent.id,
-    }),
-  });
-
-  if (!res.ok) {
-    alert("Löschen fehlgeschlagen.");
-    return;
-  }
-
-  setShowModal(false);
-  loadData();
-}
 
   /* =========================
      LOADING
      ========================= */
 
   if (!group) {
-    return (
-      <div style={{ padding: 40 }}>
-        Lade...
-      </div>
-    );
+    return <div style={{ padding: 40 }}>Lade...</div>;
   }
 
   /* =========================
@@ -380,17 +300,27 @@ export default function GroupPage() {
     <div
       style={{
         ...styles.page,
-        padding: isMobile ? 12 : 30
+        padding: isMobile ? 12 : 30,
       }}
     >
       <h1>{group.name}</h1>
 
+      {!isAdmin && (
+        <p style={styles.notice}>
+          Du kannst neue Termine erstellen. Bestehende Termine können nur von
+          Admins bearbeitet oder gelöscht werden.
+        </p>
+      )}
+
+      {isAdmin && (
+        <p style={styles.adminNotice}>
+          Admin-Modus aktiv: Du kannst Termine erstellen, bearbeiten und löschen.
+        </p>
+      )}
+
       <div style={styles.calendar}>
         <FullCalendar
-          plugins={[
-            dayGridPlugin,
-            interactionPlugin
-          ]}
+          plugins={[dayGridPlugin, interactionPlugin]}
           initialView="dayGridMonth"
           locale="de"
           firstDay={1}
@@ -399,10 +329,10 @@ export default function GroupPage() {
           headerToolbar={{
             left: "prev,next",
             center: "title",
-            right: "today"
+            right: "today",
           }}
           buttonText={{
-            today: "Heute"
+            today: "Heute",
           }}
           dayMaxEventRows={2}
           dateClick={handleDateClick}
@@ -413,47 +343,30 @@ export default function GroupPage() {
       {showModal && (
         <div style={styles.overlay}>
           <div style={styles.modal}>
-            <h2>
-              {editingEvent
-                ? "Termin bearbeiten"
-                : "Neuer Termin"}
-            </h2>
+            <h2>{editingEvent ? "Termin bearbeiten" : "Neuer Termin"}</h2>
 
             <p>{selectedDate}</p>
 
             <input
               value={title}
-              onChange={(e) =>
-                setTitle(e.target.value)
-              }
+              onChange={(e) => setTitle(e.target.value)}
               placeholder="Titel"
               style={styles.input}
               autoFocus
             />
 
             <div style={styles.modalButtons}>
-              <button
-                style={styles.cancelBtn}
-                onClick={() =>
-                  setShowModal(false)
-                }
-              >
+              <button style={styles.cancelBtn} onClick={() => setShowModal(false)}>
                 Abbrechen
               </button>
 
-              {editingEvent && (
-                <button
-                  style={styles.deleteBtn}
-                  onClick={deleteEvent}
-                >
+              {editingEvent && isAdmin && (
+                <button style={styles.deleteBtn} onClick={deleteEvent}>
                   Löschen
                 </button>
               )}
 
-              <button
-                style={styles.saveBtn}
-                onClick={saveEvent}
-              >
+              <button style={styles.saveBtn} onClick={saveEvent}>
                 Speichern
               </button>
             </div>
@@ -472,13 +385,30 @@ const styles = {
   page: {
     fontFamily: "Arial",
     background: "#f5f6fa",
-    minHeight: "100vh"
+    minHeight: "100vh",
+  },
+
+  notice: {
+    background: "#eff6ff",
+    color: "#1e40af",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+
+  adminNotice: {
+    background: "#ecfdf5",
+    color: "#065f46",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    fontWeight: "bold",
   },
 
   calendar: {
     background: "white",
     padding: 12,
-    borderRadius: 12
+    borderRadius: 12,
   },
 
   overlay: {
@@ -488,7 +418,7 @@ const styles = {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 99999
+    zIndex: 99999,
   },
 
   modal: {
@@ -497,7 +427,7 @@ const styles = {
     borderRadius: 12,
     width: "90vw",
     maxWidth: 340,
-    boxSizing: "border-box"
+    boxSizing: "border-box",
   },
 
   input: {
@@ -508,13 +438,13 @@ const styles = {
     borderRadius: 8,
     border: "1px solid #ccc",
     boxSizing: "border-box",
-    fontSize: 16
+    fontSize: 16,
   },
 
   modalButtons: {
     display: "flex",
     gap: 10,
-    justifyContent: "flex-end"
+    justifyContent: "flex-end",
   },
 
   saveBtn: {
@@ -523,7 +453,7 @@ const styles = {
     color: "white",
     border: "none",
     borderRadius: 8,
-    cursor: "pointer"
+    cursor: "pointer",
   },
 
   cancelBtn: {
@@ -531,7 +461,7 @@ const styles = {
     background: "#ddd",
     border: "none",
     borderRadius: 8,
-    cursor: "pointer"
+    cursor: "pointer",
   },
 
   deleteBtn: {
@@ -540,6 +470,6 @@ const styles = {
     color: "white",
     border: "none",
     borderRadius: 8,
-    cursor: "pointer"
-  }
+    cursor: "pointer",
+  },
 };
