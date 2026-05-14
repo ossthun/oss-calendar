@@ -6,6 +6,10 @@ export default function Home() {
   const [groups, setGroups] = useState([]);
   const [error, setError] = useState("");
 
+  const [newGroupName, setNewGroupName] = useState("");
+  const [createError, setCreateError] = useState("");
+  const [createdGroup, setCreatedGroup] = useState(null);
+
   useEffect(() => {
     loadGroups();
   }, []);
@@ -26,7 +30,6 @@ export default function Home() {
 
   async function handleLogin(e) {
     e.preventDefault();
-
     setError("");
 
     const res = await fetch("/api/login", {
@@ -43,7 +46,6 @@ export default function Home() {
     }
 
     setPassword("");
-
     await loadGroups();
   }
 
@@ -53,6 +55,7 @@ export default function Home() {
     setLoggedIn(false);
     setGroups([]);
     setPassword("");
+    setCreatedGroup(null);
   }
 
   function openAdmin(groupToken) {
@@ -64,6 +67,32 @@ export default function Home() {
       `/group/${groupToken}?admin=${encodeURIComponent(adminToken)}`,
       "_blank"
     );
+  }
+
+  async function createGroup(e) {
+    e.preventDefault();
+
+    setCreateError("");
+    setCreatedGroup(null);
+
+    const res = await fetch("/api/create-group", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name: newGroupName }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      setCreateError(data.error || "Gruppe konnte nicht erstellt werden.");
+      return;
+    }
+
+    setNewGroupName("");
+    setCreatedGroup(data);
+    await loadGroups();
   }
 
   if (!loggedIn) {
@@ -98,13 +127,64 @@ export default function Home() {
         <div style={styles.header}>
           <div>
             <h1>Admin Dashboard</h1>
-
             <p style={styles.note}>Kalendergruppen verwalten</p>
           </div>
 
           <button onClick={logout} style={styles.logoutButton}>
             Logout
           </button>
+        </div>
+
+        <div style={styles.createBox}>
+          <h2>Neue Gruppe erstellen</h2>
+
+          <form onSubmit={createGroup} style={styles.createForm}>
+            <input
+              value={newGroupName}
+              onChange={(e) => setNewGroupName(e.target.value)}
+              placeholder="Gruppenname, z.B. Klasse 8B"
+              style={styles.input}
+            />
+
+            <button type="submit" style={styles.createButton}>
+              Gruppe erstellen
+            </button>
+          </form>
+
+          {createError && <p style={styles.error}>{createError}</p>}
+
+          {createdGroup && (
+            <div style={styles.successBox}>
+              <h3>Gruppe erstellt</h3>
+
+              <p>
+                <strong>Name:</strong> {createdGroup.group.name}
+              </p>
+
+              <p>
+                <strong>Öffentlicher Link:</strong>
+                <br />
+                <code>{createdGroup.adminLink.split("?admin=")[0]}</code>
+              </p>
+
+              <p>
+                <strong>Admin-Link:</strong>
+                <br />
+                <code>{createdGroup.adminLink}</code>
+              </p>
+
+              <p>
+                <strong>Admin-Token:</strong>
+                <br />
+                <code>{createdGroup.adminToken}</code>
+              </p>
+
+              <p style={styles.warning}>
+                Wichtig: Speichere den Admin-Link jetzt. Er wird später nicht
+                mehr angezeigt.
+              </p>
+            </div>
+          )}
         </div>
 
         {groups.length === 0 ? (
@@ -213,6 +293,44 @@ const styles = {
     border: "none",
     borderRadius: 8,
     cursor: "pointer",
+  },
+
+  createBox: {
+    marginTop: 24,
+    marginBottom: 24,
+    padding: 20,
+    borderRadius: 12,
+    background: "#f9fafb",
+    border: "1px solid #e5e7eb",
+  },
+
+  createForm: {
+    display: "grid",
+    gap: 8,
+  },
+
+  createButton: {
+    padding: 12,
+    fontSize: 16,
+    background: "#16a34a",
+    color: "white",
+    border: "none",
+    borderRadius: 8,
+    cursor: "pointer",
+    fontWeight: "bold",
+  },
+
+  successBox: {
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 10,
+    background: "#ecfdf5",
+    border: "1px solid #86efac",
+  },
+
+  warning: {
+    color: "#92400e",
+    fontWeight: "bold",
   },
 
   error: {
