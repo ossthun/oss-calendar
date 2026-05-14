@@ -1,7 +1,24 @@
-export default function handler(req, res) {
+import { rateLimit, getClientIp } from "../../lib/rateLimit";
+
+export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
       error: "Method not allowed",
+    });
+  }
+
+  const ip = getClientIp(req);
+
+  const allowed = await rateLimit({
+    key: ip,
+    route: "login",
+    limit: 10,
+    windowSeconds: 900,
+  });
+
+  if (!allowed) {
+    return res.status(429).json({
+      error: "Too many login attempts",
     });
   }
 
