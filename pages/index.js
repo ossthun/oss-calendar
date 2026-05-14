@@ -30,6 +30,7 @@ export default function Home() {
 
   async function handleLogin(e) {
     e.preventDefault();
+
     setError("");
 
     const res = await fetch("/api/login", {
@@ -46,6 +47,7 @@ export default function Home() {
     }
 
     setPassword("");
+
     await loadGroups();
   }
 
@@ -92,6 +94,60 @@ export default function Home() {
 
     setNewGroupName("");
     setCreatedGroup(data);
+
+    await loadGroups();
+  }
+
+  async function renameGroup(group) {
+    const newName = prompt(
+      "Neuer Gruppenname:",
+      group.name
+    );
+
+    if (!newName) return;
+
+    const res = await fetch("/api/update-group", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id: group.id,
+        name: newName,
+      }),
+    });
+
+    if (!res.ok) {
+      alert("Umbenennen fehlgeschlagen.");
+      return;
+    }
+
+    await loadGroups();
+  }
+
+  async function deleteGroup(group) {
+    const confirmed = confirm(
+      `Gruppe "${group.name}" wirklich löschen?\n\nAlle Termine werden ebenfalls gelöscht.`
+    );
+
+    if (!confirmed) return;
+
+    const res = await fetch("/api/delete-group", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id: group.id,
+        token: group.token,
+      }),
+    });
+
+    if (!res.ok) {
+      alert("Löschen fehlgeschlagen.");
+      return;
+    }
+
     await loadGroups();
   }
 
@@ -105,14 +161,23 @@ export default function Home() {
             <input
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) =>
+                setPassword(e.target.value)
+              }
               placeholder="Passwort"
               style={styles.input}
             />
 
-            {error && <p style={styles.error}>{error}</p>}
+            {error && (
+              <p style={styles.error}>
+                {error}
+              </p>
+            )}
 
-            <button type="submit" style={styles.button}>
+            <button
+              type="submit"
+              style={styles.button}
+            >
               Einloggen
             </button>
           </form>
@@ -127,10 +192,16 @@ export default function Home() {
         <div style={styles.header}>
           <div>
             <h1>Admin Dashboard</h1>
-            <p style={styles.note}>Kalendergruppen verwalten</p>
+
+            <p style={styles.note}>
+              Kalendergruppen verwalten
+            </p>
           </div>
 
-          <button onClick={logout} style={styles.logoutButton}>
+          <button
+            onClick={logout}
+            style={styles.logoutButton}
+          >
             Logout
           </button>
         </div>
@@ -138,93 +209,136 @@ export default function Home() {
         <div style={styles.createBox}>
           <h2>Neue Gruppe erstellen</h2>
 
-          <form onSubmit={createGroup} style={styles.createForm}>
+          <form
+            onSubmit={createGroup}
+            style={styles.createForm}
+          >
             <input
               value={newGroupName}
-              onChange={(e) => setNewGroupName(e.target.value)}
-              placeholder="Gruppenname, z.B. Klasse 8B"
+              onChange={(e) =>
+                setNewGroupName(
+                  e.target.value
+                )
+              }
+              placeholder="Gruppenname"
               style={styles.input}
             />
 
-            <button type="submit" style={styles.createButton}>
+            <button
+              type="submit"
+              style={styles.createButton}
+            >
               Gruppe erstellen
             </button>
           </form>
 
-          {createError && <p style={styles.error}>{createError}</p>}
+          {createError && (
+            <p style={styles.error}>
+              {createError}
+            </p>
+          )}
 
           {createdGroup && (
             <div style={styles.successBox}>
               <h3>Gruppe erstellt</h3>
 
               <p>
-                <strong>Name:</strong> {createdGroup.group.name}
+                <strong>Name:</strong>{" "}
+                {createdGroup.group.name}
               </p>
 
               <p>
                 <strong>Öffentlicher Link:</strong>
                 <br />
-                <code>{createdGroup.adminLink.split("?admin=")[0]}</code>
+                <code>
+                  {
+                    createdGroup.adminLink.split(
+                      "?admin="
+                    )[0]
+                  }
+                </code>
               </p>
 
               <p>
                 <strong>Admin-Link:</strong>
                 <br />
-                <code>{createdGroup.adminLink}</code>
+                <code>
+                  {createdGroup.adminLink}
+                </code>
               </p>
 
               <p>
                 <strong>Admin-Token:</strong>
                 <br />
-                <code>{createdGroup.adminToken}</code>
+                <code>
+                  {createdGroup.adminToken}
+                </code>
               </p>
 
               <p style={styles.warning}>
-                Wichtig: Speichere den Admin-Link jetzt. Er wird später nicht
-                mehr angezeigt.
+                Wichtig: Speichere den
+                Admin-Link jetzt.
               </p>
             </div>
           )}
         </div>
 
-        {groups.length === 0 ? (
-          <p>Keine Gruppen gefunden.</p>
-        ) : (
-          <div style={styles.list}>
-            {groups.map((group) => (
-              <div key={group.id} style={styles.groupCard}>
-                <h2>{group.name}</h2>
+        <div style={styles.list}>
+          {groups.map((group) => (
+            <div
+              key={group.id}
+              style={styles.groupCard}
+            >
+              <h2>{group.name}</h2>
 
-                <p>
-                  <strong>Token:</strong> {group.token}
-                </p>
+              <p>
+                <strong>Token:</strong>{" "}
+                {group.token}
+              </p>
 
-                <div style={styles.buttonRow}>
-                  <button
-                    style={styles.openButton}
-                    onClick={() =>
-                      window.open(`/group/${group.token}`, "_blank")
-                    }
-                  >
-                    Kalender öffnen
-                  </button>
+              <div style={styles.buttonRow}>
+                <button
+                  style={styles.openButton}
+                  onClick={() =>
+                    window.open(
+                      `/group/${group.token}`,
+                      "_blank"
+                    )
+                  }
+                >
+                  Kalender öffnen
+                </button>
 
-                  <button
-                    style={styles.adminButton}
-                    onClick={() => openAdmin(group.token)}
-                  >
-                    Admin
-                  </button>
-                </div>
+                <button
+                  style={styles.adminButton}
+                  onClick={() =>
+                    openAdmin(group.token)
+                  }
+                >
+                  Admin
+                </button>
 
-                <p style={styles.small}>
-                  Der Admin-Button fragt nach dem Admin-Token und öffnet dann
-                  die Bearbeitungsansicht.
-                </p>
+                <button
+                  style={styles.renameButton}
+                  onClick={() =>
+                    renameGroup(group)
+                  }
+                >
+                  Umbenennen
+                </button>
+
+                <button
+                  style={styles.deleteButton}
+                  onClick={() =>
+                    deleteGroup(group)
+                  }
+                >
+                  Löschen
+                </button>
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -246,16 +360,18 @@ const styles = {
     width: "90%",
     maxWidth: 360,
     margin: "12vh auto 0",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+    boxShadow:
+      "0 10px 30px rgba(0,0,0,0.08)",
   },
 
   dashboard: {
     background: "white",
     padding: 30,
     borderRadius: 12,
-    maxWidth: 900,
+    maxWidth: 1000,
     margin: "0 auto",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+    boxShadow:
+      "0 10px 30px rgba(0,0,0,0.08)",
   },
 
   header: {
@@ -335,7 +451,6 @@ const styles = {
 
   error: {
     color: "#dc2626",
-    marginTop: 0,
   },
 
   note: {
@@ -385,9 +500,25 @@ const styles = {
     fontWeight: "bold",
   },
 
-  small: {
-    fontSize: 13,
-    color: "#666",
-    marginTop: 12,
+  renameButton: {
+    padding: "10px 16px",
+    background: "#f59e0b",
+    color: "white",
+    border: "none",
+    borderRadius: 8,
+    cursor: "pointer",
+    fontSize: 15,
+    fontWeight: "bold",
+  },
+
+  deleteButton: {
+    padding: "10px 16px",
+    background: "#dc2626",
+    color: "white",
+    border: "none",
+    borderRadius: 8,
+    cursor: "pointer",
+    fontSize: 15,
+    fontWeight: "bold",
   },
 };
