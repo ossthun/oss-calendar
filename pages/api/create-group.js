@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { supabaseAdmin } from "../../lib/supabaseAdmin";
 import { hashToken } from "../../lib/hashToken";
+import { rateLimit, getClientIp } from "../../lib/rateLimit";
 
 function randomToken(length = 16) {
   return crypto.randomBytes(length).toString("hex");
@@ -19,8 +20,22 @@ export default async function handler(req, res) {
     });
   }
 
-  const { name } = req.body;
+  const ip = getClientIp(req);
 
+  const allowed = await rateLimit({
+    key: ip,
+    route: "create-group",
+    limit: 10,
+    windowSeconds: 3600,
+  });
+
+  if (!allowed) {
+    return res.status(429).json({
+      error: "Too many groups created",
+    });
+  }
+
+  const { name } = req.body;
   const cleanName = String(name || "").trim();
 
   if (!cleanName) {
