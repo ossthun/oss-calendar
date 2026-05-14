@@ -11,7 +11,9 @@ function isValidDate(date) {
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return res.status(405).json({
+      error: "Method not allowed",
+    });
   }
 
   const ip = getClientIp(req);
@@ -32,21 +34,29 @@ export default async function handler(req, res) {
   const { token, admin, id, title, date } = req.body;
 
   if (!token || !title || !date) {
-    return res.status(400).json({ error: "Missing data" });
+    return res.status(400).json({
+      error: "Missing data",
+    });
   }
 
   if (!isValidDate(date)) {
-    return res.status(400).json({ error: "Invalid date" });
+    return res.status(400).json({
+      error: "Invalid date",
+    });
   }
 
   const cleanTitle = String(title).trim();
 
   if (!cleanTitle) {
-    return res.status(400).json({ error: "Title required" });
+    return res.status(400).json({
+      error: "Title required",
+    });
   }
 
   if (cleanTitle.length > MAX_TITLE_LENGTH) {
-    return res.status(400).json({ error: "Title too long" });
+    return res.status(400).json({
+      error: "Title too long",
+    });
   }
 
   const { data: group, error: groupError } = await supabaseAdmin
@@ -56,7 +66,9 @@ export default async function handler(req, res) {
     .single();
 
   if (groupError || !group) {
-    return res.status(404).json({ error: "Calendar not found" });
+    return res.status(404).json({
+      error: "Calendar not found",
+    });
   }
 
   const isAdmin =
@@ -64,31 +76,45 @@ export default async function handler(req, res) {
 
   if (id) {
     if (!isAdmin) {
-      return res.status(401).json({ error: "Not authorized" });
+      return res.status(401).json({
+        error: "Not authorized",
+      });
     }
 
     const { error } = await supabaseAdmin
       .from("events")
-      .update({ title: cleanTitle, date })
+      .update({
+        title: cleanTitle,
+        date,
+      })
       .eq("id", id)
       .eq("group_token", token);
 
     if (error) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({
+        error: error.message,
+      });
     }
 
-    return res.status(200).json({ success: true });
+    return res.status(200).json({
+      success: true,
+    });
   }
 
   const { count, error: countError } = await supabaseAdmin
     .from("events")
-    .select("*", { count: "exact", head: true })
+    .select("*", {
+      count: "exact",
+      head: true,
+    })
     .eq("group_token", token)
     .eq("date", date)
     .eq("is_holiday", false);
 
   if (countError) {
-    return res.status(500).json({ error: countError.message });
+    return res.status(500).json({
+      error: countError.message,
+    });
   }
 
   if (!isAdmin && count >= MAX_EVENTS_PER_GROUP_PER_DAY) {
@@ -107,11 +133,15 @@ export default async function handler(req, res) {
       .limit(1);
 
   if (duplicateError) {
-    return res.status(500).json({ error: duplicateError.message });
+    return res.status(500).json({
+      error: duplicateError.message,
+    });
   }
 
   if (!isAdmin && duplicates.length > 0) {
-    return res.status(409).json({ error: "Duplicate event" });
+    return res.status(409).json({
+      error: "Duplicate event",
+    });
   }
 
   const { error } = await supabaseAdmin.from("events").insert([
@@ -124,8 +154,12 @@ export default async function handler(req, res) {
   ]);
 
   if (error) {
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({
+      error: error.message,
+    });
   }
 
-  return res.status(200).json({ success: true });
+  return res.status(200).json({
+    success: true,
+  });
 }
